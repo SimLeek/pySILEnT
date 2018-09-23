@@ -1,7 +1,17 @@
+# coding:utf-8
+
+"""
+This code generates tensors that detect points more than any other feature. They also detects edges. Equivalent to
+top-hat edge detectors.
+"""
+
 import itertools
 import math as m
 
 import numpy as np
+
+if False:
+    from typing import List
 
 
 def center_surround_tensor(ndim,  # type: int
@@ -10,14 +20,15 @@ def center_surround_tensor(ndim,  # type: int
                            surround_in,  # type: List[int]
                            surround_out  # type: List[int]
                            ):
-    """Generates a multi-channel center surround center_surround matrix. Useful for isolating or enhancing edges.
+    """Generates a multi-channel center center surround matrix. Useful for isolating or enhancing edges.
 
     Note: center-surround tensors with 11 or more dimensions may take a while to generate. Make sure you cache those.
 
-    :param center_in: input tensor of ints. shape of tensor depends on desired input/output.
-    :param center_out:
-    :param surround_in:
-    :param surround_out:
+    :param ndim: number of dimensions
+    :param center_in: input tensor of ints representing colors to look for in the center
+    :param center_out: input tensor representing colors to output when more center is detected
+    :param surround_in: tensor representing colors to look for outside of center
+    :param surround_out: tensor representing colors to output when more surround color is detected
     """
     assert ndim >= 1
 

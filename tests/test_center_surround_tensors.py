@@ -7,7 +7,7 @@ import time
 class TestCenterSurroundTensor(ut.TestCase):
     def test_surround_center(self):
         test_1d = center_surround_tensor(1, [0, 1, 0], [1, 0, 0],
-                                            [0, 0, 1], [1, 0, 0])
+                                         [0, 0, 1], [1, 0, 0])
 
         npt.assert_array_equal(test_1d, [[[0., 0., 0., ],
                                           [0., 0., 0., ],
@@ -61,6 +61,7 @@ class TestCenterSurroundTensor(ut.TestCase):
                                          [0., 0., 0.],
                                          [0.70710678, 0., 0.]]]]
                                       )
+
 
 class TestRetinalFilterPerformance(ut.TestCase):
     def test_surround_center_time(self):

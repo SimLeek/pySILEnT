@@ -1,2 +1,4 @@
 from .log_attractor_function import log_attractor_function
 from .piecewise_attractor_function import piecewise_attractor_function
+from .euclidian_attractor_function import euclidian_attractor_function_generator
+from .linear_attractor_function import linear_attractor_function_generator

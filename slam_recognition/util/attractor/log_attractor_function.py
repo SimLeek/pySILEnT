@@ -14,7 +14,7 @@ def log_attractor_function(x,
                 |
         Don't you wish you had curves like that?
 
-        This is better than a linear equation, because you don't want far away points effecting your local edges.
+        This can be better than a linear equation, because you don't want far away points effecting your local edges.
 
         :param x: real number input. No imaginary numbers allowed, I'm trying to keep things real here.
         :param max_positive: Maximum positove number that this equation will generate.
