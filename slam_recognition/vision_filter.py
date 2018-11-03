@@ -28,7 +28,7 @@ class VisionFilter(object):
         self.rgc = midget_rgc(2)
         self.rgby = rgby_3(2)
         self.simplex_boundaries_b = rgb_2d_stripe_tensors()
-        self.blur = blur_tensor(2, lengths=3)
+        self.blur = blur_tensor(2, lengths=7)
         self.simplex_end_stop = rgb_2d_end_tensors()
 
     def spatial_color_2d(self, pyramid_tensor):
@@ -48,7 +48,7 @@ class VisionFilter(object):
         input_placeholder = tf.placeholder(
             dtype=tf.float32, shape=(pyramid_tensor.shape))
 
-        with tf.name_scope('center_surround') and tf.device('/device:CPU:0'):  # Use CPU for small filters like these
+        with tf.name_scope('center_surround') and tf.device('/device:GPU:0'):  # Use CPU for small filters like these
             conv_rgc = tf.constant(self.rgc, dtype=tf.float32, shape=(3, 3, 3, 3))
 
             conv_rgby = tf.constant(self.rgby, dtype=tf.float32, shape=(3, 3, 3, 3))
@@ -68,24 +68,50 @@ class VisionFilter(object):
                 [0]
             )
 
-            conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(3, 3, 3, 3))
+            conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(7, 7, 3, 3))
 
             output_orient = regulate_tensor(output_orient, conv_blur, 1.0, .1)
 
             simplex_end_filter = tf.constant(self.simplex_end_stop, dtype=tf.float32, shape=(7, 7, 3, 3))
 
-            output_orient = tf.maximum(
+            output_orient = tf.minimum(tf.maximum(
                 tf.nn.conv2d(
                     input=output_orient, filter=simplex_end_filter, strides=[1, 1, 1, 1], padding='SAME'),
                 [0]
-            )
+            ),[255])
 
-            conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(3, 3, 3, 3))
+            conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(7, 7, 3, 3))
 
-            output_orient = regulate_tensor(output_orient, conv_blur, 1.0, .5)
+            output_orient = regulate_tensor(output_orient, conv_blur, 1.0, 1.0)
+
+            #local maxima: https://stackoverflow.com/a/43801558/782170
+            max_pooled_in_tensor = tf.nn.pool(output_orient, window_shape=(3, 3), pooling_type='MAX', padding='SAME')
+            maxima = output_orient * tf.where(tf.equal(output_orient, max_pooled_in_tensor), output_orient, tf.zeros_like(output_orient))
+
+            #todo: get this pseudocode working
+            '''
+            #get indices: https://stackoverflow.com/a/39223400/782170
+            zero = tf.constant(0, dtype=tf.float32)
+            where = tf.not_equal(maxima, zero)
+            indices = tf.where(where)
+            indices = sort(indices, key=lambda ind: maxima[ind])
+
+            feature_layer = np.zeros_like(maxima)
+            for i in indices:
+                # todo: handle multi image scaling
+                img_trans = tf.contrib.image.translate(
+                    maxima, indices[i]-np.shape(maxima)[:2], "NEAREST"
+                )
+                img_rot = tf.contrib.image.rotate(
+                    img_trans, get_angle(maxima[indices[i]]), "NEAREST"
+                )
+                feature_layer += img_rot
+                if fill_amount(feature_layer) > 0.03:
+                    break
+                '''
 
         with tf.Session() as session:
-            result_edge = session.run(output_orient, feed_dict={
+            result_edge = session.run(maxima, feed_dict={
                 input_placeholder: pyramid_tensor[:, :, :, :]})
 
         return result_edge
@@ -111,7 +137,7 @@ class VisionFilter(object):
         """
         npFrame = np.asarray(frame, dtype=np.float32)
         frames = zoom_tensor_to_image_list(
-            self.spatial_color_2d(zoom_tensor.from_image(npFrame, 3, [128, 72], m.e ** .5)))
+            self.spatial_color_2d(zoom_tensor.from_image(npFrame, 3, [257, 144], m.e ** .5)))
         frame = frames[0]
         for f in range(1, len(frames)):
             frame = np.concatenate((frame, frames[f]), axis=1)
