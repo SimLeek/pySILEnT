@@ -16,6 +16,7 @@ class RGCFilter(PyramidFilter):
         self.pyramid_tensor_shape = None
         self.input_placeholder = None
         self.compiled_list = []
+        self.session = None
 
     def compile(self, pyramid_tensor):
         """runs the RGC filter on the set of images."""
@@ -40,10 +41,11 @@ class RGCFilter(PyramidFilter):
         if self.pyramid_tensor_shape != pyramid_tensor.shape:
             self.pyramid_tensor_shape = pyramid_tensor.shape
             self.compile(pyramid_tensor)
-        with tf.Session() as session:
-            result = session.run(self.compiled_list, feed_dict={
-                self.input_placeholder: pyramid_tensor[:, :, :, :]
-            })
+        if self.session is None:
+            self.session = tf.Session()
+        result = self.session.run(self.compiled_list, feed_dict={
+            self.input_placeholder: pyramid_tensor[:, :, :, :]
+        })
 
         return result
 
