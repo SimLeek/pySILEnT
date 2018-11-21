@@ -12,6 +12,7 @@ class OrientationFilter(RGBYFilter):
         color difference."""
 
         super(OrientationFilter, self).__init__(**argv)
+        self.tensor_return_type.append(tf.Tensor)
 
         self.simplex_boundaries_b = rgb_2d_stripe_tensors()
 

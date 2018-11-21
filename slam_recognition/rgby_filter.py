@@ -10,6 +10,7 @@ class RGBYFilter(RGCFilter):
         color difference."""
 
         super(RGBYFilter, self).__init__(**argv)
+        self.tensor_return_type.append(tf.Tensor)
 
         self.rgby = rgby_3(n_dimensions)
 

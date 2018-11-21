@@ -18,6 +18,9 @@ class RGCFilter(PyramidFilter):
         self.compiled_list = []
         self.session = None
 
+
+        self.tensor_return_type.append(tf.Tensor)
+
     def compile(self, pyramid_tensor):
         """runs the RGC filter on the set of images."""
         self.compiled_list = []
@@ -61,7 +64,8 @@ class RGCFilter(PyramidFilter):
             result.append(z_tensor)
         for i in range(len(tensors)):
             if self.callback_depth >= i:
-                result.append(tensors[i])
+                if self.tensor_return_type[i]==tf.Tensor:
+                    result.append(tensors[i])
         return result
 
 

@@ -9,11 +9,14 @@ import tensorflow as tf
 class PyramidFilter(object):
     callback_depth = 1
 
-    def __init__(self, output_size=(127, 64), output_colors=3, zoom_ratio=m.e ** .5):
+    def __init__(self, output_size=(32, 16), output_colors=3, zoom_ratio=m.e ** .5):
         """Generates several smaller images at different zoom levels from one input image."""
         self.output_size = output_size
         self.output_colors = output_colors
         self.zoom_ratio = zoom_ratio
+
+        self.tensor_return_type = []
+        self.tensor_return_type.append(tf.Tensor)
 
     def callback(self,
                  frame,
@@ -45,14 +48,21 @@ class PyramidFilter(object):
             return
         result_frame = None
         for frame_list in frame_array:
+            for f in range(len(frame_list)):
+                if frame_list[f].ndim == 2:
+                    frame_list[f] = np.stack((frame_list[f],) * 3, axis=-1)
             result_frame_list = frame_list[0]
             for f in range(1, len(frame_list)):
                 result_frame_list = np.concatenate((result_frame_list, frame_list[f]), axis=1)
             if result_frame is None:
                 result_frame = result_frame_list
             else:
-                result_frame = np.concatenate((result_frame, result_frame_list), axis=0)
-        return [result_frame]
+                try:
+                    result_frame = np.concatenate((result_frame, result_frame_list), axis=0)
+                    result_frames = [result_frame]
+                except ValueError:
+                    result_frames = [result_frame_list, result_frame]
+        return result_frames
 
     def run_camera(self):
         t = wp.VideoHandlerThread(0, [self.display] + wp.display_callbacks,
@@ -62,7 +72,7 @@ class PyramidFilter(object):
 
         t.start()
 
-        ws.SubscriberWindows(window_names=["Pyramid"],
+        ws.SubscriberWindows(window_names=["Pyramid", "t"],
                              video_sources=[0]
                              ).loop()
 

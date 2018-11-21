@@ -12,6 +12,7 @@ class LineEndFilter(OrientationFilter):
         color difference."""
 
         super(LineEndFilter, self).__init__(**argv)
+        self.tensor_return_type.append(tf.Tensor)
 
         self.simplex_end_stop = rgb_2d_end_tensors()
 
