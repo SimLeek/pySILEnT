@@ -78,6 +78,9 @@ class SpatialInvarianceFilter(LineEndFilter):
         super(SpatialInvarianceFilter, self).__init__(**argv)
         self.tensor_return_type.append(tf.Tensor)
 
+        self.sparse_tensor_display_program = None
+        self.sparse_tensor_display_input_placeholder = None
+
     def compile(self, pyramid_tensor):
         super(SpatialInvarianceFilter, self).compile(pyramid_tensor)
 
@@ -104,6 +107,13 @@ class SpatialInvarianceFilter(LineEndFilter):
 
         # SparseTensors aren't good in TensorFlow. It'd be better to just use the CPU here. I'll need to implement run
 
+    def compile_sparse_tensor_displayer(self, sparse_tensor_batch):
+        input_placeholder = [tf.sparse_placeholder(tf.int64) for _ in range(len(sparse_tensor_batch))]
+        with tf.name_scope("makeImageFromSparse"):
+            output = [tf.sparse_tensor_to_dense(inp) for inp in input_placeholder]
+            output = tf.stack(output)
+        return input_placeholder, output
+
 
     def run(self, pyramid_tensor):
         result = super(SpatialInvarianceFilter, self).run(pyramid_tensor)
@@ -117,22 +127,27 @@ class SpatialInvarianceFilter(LineEndFilter):
                     new_indices.append(sparse_tensor.indices[j]-sparse_tensor.indices[i]+sparse_tensor.dense_shape/2)
                     new_values.append((sparse_tensor.values[j]-sparse_tensor.values[i])%255)
             np_indices = np.array(new_indices)
-            new_indices, indices_for_vals = np.unique(np_indices, axis=0, return_index=True)
-            new_values = np.take(new_values, indices_for_vals)
+            if np_indices.size>0:
+                new_indices, indices_for_vals = np.unique(np_indices, axis=0, return_index=True)
+                new_values = np.take(new_values, indices_for_vals)
+            else:
+                new_indices = np.ndarray((0,2))
+                new_values = np.ndarray((0,))
             sparse_tensor_batch[stb] = tf.SparseTensorValue(indices=new_indices,
                                                             values=new_values,
                                                             dense_shape=sparse_tensor.dense_shape)
 
-        input_placeholder = [tf.sparse_placeholder(tf.int64) for _ in range(len(sparse_tensor_batch))]
-        with tf.name_scope("makeImageFromSparse"):
-            output = [tf.sparse_tensor_to_dense(inp) for inp in input_placeholder]
-            output = tf.stack(output)
+
+
+        if self.sparse_tensor_display_program == None or self.sparse_tensor_display_input_placeholder == None:
+            self.sparse_tensor_display_input_placeholder, self.sparse_tensor_display_program = self.compile_sparse_tensor_displayer(sparse_tensor_batch)
 
         feed_dict = {}
-        for i in range(len(input_placeholder)):
-            feed_dict[input_placeholder[i]] = sparse_tensor_batch[i]
 
-        out = self.session.run(output, feed_dict = feed_dict)
+        for i in range(len(self.sparse_tensor_display_input_placeholder)):
+            feed_dict[self.sparse_tensor_display_input_placeholder[i]] = sparse_tensor_batch[i]
+
+        out = self.session.run(self.sparse_tensor_display_program, feed_dict = feed_dict)
         result[-1]=out
         # cpu stuff here
         return result

@@ -9,7 +9,7 @@ import tensorflow as tf
 class PyramidFilter(object):
     callback_depth = 1
 
-    def __init__(self, output_size=(32, 16), output_colors=3, zoom_ratio=m.e ** .5):
+    def __init__(self, output_size=(64, 32), output_colors=3, zoom_ratio=m.e ** .5):
         """Generates several smaller images at different zoom levels from one input image."""
         self.output_size = output_size
         self.output_colors = output_colors
