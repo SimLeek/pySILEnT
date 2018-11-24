@@ -2,6 +2,8 @@ from slam_recognition.orientation_filter import OrientationFilter
 import tensorflow as tf
 from slam_recognition.regulator_tensor.gaussian_regulator_tensor import regulate_tensor, blur_tensor
 from slam_recognition.end_tensor import rgb_2d_end_tensors
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import array_ops
 
 
 class LineEndFilter(OrientationFilter):
@@ -32,13 +34,20 @@ class LineEndFilter(OrientationFilter):
 
             conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(7, 7, 3, 3))
 
-            compiled_line_end = regulate_tensor(compiled_line_end, conv_blur, 0.5, 0.1)
+            #compiled_line_end = regulate_tensor(compiled_line_end, conv_blur, 0.5, 0.1)
 
-            max_pooled_in_tensor = tf.nn.pool(compiled_line_end, window_shape=(3, 3), pooling_type='MAX', padding='SAME')
-            compiled_line_end = compiled_line_end * tf.where(tf.equal(compiled_line_end, max_pooled_in_tensor), compiled_line_end,
+            rgb_weights = [0.3333, 0.3333, 0.3333]
+            gray_float = math_ops.tensordot(compiled_line_end, rgb_weights, [-1, -1])
+            gray_float = array_ops.expand_dims(gray_float, -1)
+
+            max_pooled_in_tensor = tf.nn.pool(gray_float, window_shape=(3, 3), pooling_type='MAX', padding='SAME')
+            max_pooled_in_tensor = tf.image.grayscale_to_rgb(max_pooled_in_tensor)
+            gray_float = tf.image.grayscale_to_rgb(gray_float)
+
+            compiled_line_end = compiled_line_end * tf.where(tf.equal(gray_float, max_pooled_in_tensor), compiled_line_end,
                                               tf.zeros_like(compiled_line_end))
 
-            self.compiled_list.append(compiled_line_end)
+            self.compiled_list.append(tf.clip_by_value(compiled_line_end,0,255))
 
 
 if __name__ == '__main__':
