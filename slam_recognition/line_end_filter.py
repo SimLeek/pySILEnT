@@ -32,11 +32,9 @@ class LineEndFilter(OrientationFilter):
                 [0]
             )
 
-            conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(7, 7, 3, 3))
 
-            #compiled_line_end = regulate_tensor(compiled_line_end, conv_blur, 0.5, 0.1)
 
-            rgb_weights = [0.3333, 0.3333, 0.3333]
+            '''rgb_weights = [0.3333, 0.3333, 0.3333]
             gray_float = math_ops.tensordot(compiled_line_end, rgb_weights, [-1, -1])
             gray_float = array_ops.expand_dims(gray_float, -1)
 
@@ -45,7 +43,10 @@ class LineEndFilter(OrientationFilter):
             gray_float = tf.image.grayscale_to_rgb(gray_float)
 
             compiled_line_end = compiled_line_end * tf.where(tf.equal(gray_float, max_pooled_in_tensor), compiled_line_end,
-                                              tf.zeros_like(compiled_line_end))
+                                              tf.zeros_like(compiled_line_end))'''
+
+            #conv_blur = tf.constant(self.blur, dtype=tf.float32, shape=(7, 7, 3, 3))
+            #compiled_line_end = tf.nn.conv2d(compiled_line_end, conv_blur, strides=[1,1,1,1], padding='SAME')
 
             self.compiled_list.append(tf.clip_by_value(compiled_line_end,0,255))
 
@@ -53,4 +54,6 @@ class LineEndFilter(OrientationFilter):
 if __name__ == '__main__':
     filter = LineEndFilter()
 
-    filter.run_camera()
+    filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\TimelineHex.mov", fps_limit=30)
+    #filter.run_camera(0)
+    #results = filter.run_on_pictures([r'C:\Users\joshm\OneDrive\Pictures\backgrounds'], write_results=True)

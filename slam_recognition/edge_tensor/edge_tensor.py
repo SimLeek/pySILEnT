@@ -108,12 +108,29 @@ def rgb_2d_edge_tensors(in_channel=(1, 1, 1)):
     :return: a list of tensors for 2D boundary detection and displaying.
     """
     x = 2
+    out1 = [[2 * x, -.5 * x, -.5 * x], [-.5 * x, 2 * x, -.5 * x], [-.5 * x, -.5 * x, 2 * x]]
+    out2 =  [[-2 * x, .5 * x, .5 * x], [.5 * x, -2 * x, .5 * x], [.5 * x, .5 * x, -2 * x]]
+    #out1 = [[2 * x,x,x], [x, 2 * x, x], [x,x, 2 * x]]
+    #out2 = [[-2 * x,0,0], [0, -2 * x, 0], [0,0, -2 * x]]
     return sum(simplex_edge_tensors(2, [in_channel, in_channel, in_channel],
-                                    [[2 * x, -.5 * x, -.5 * x], [-.5 * x, 2 * x, -.5 * x], [-.5 * x, -.5 * x, 2 * x]],
+                                    out1,
                                     [in_channel, in_channel, in_channel],
-                                    [[-2 * x, .5 * x, .5 * x], [.25 * x, -2 * x, .5 * x], [.5 * x, .5 * x, -2 * x]]))
+                                    out2))
 
+def rgb_2d_edge_tensors_time_diff(in_channel=(1, 1, 1), surround_in_channel=(-1,-1,-1)):
+    """ Finds edges and outputs colors based on orientation. For use on 2D sensor input only. 3D will require 4 colors
+     to visualize.
 
+    :return: a list of tensors for 2D boundary detection and displaying.
+    """
+    x = 2
+    out1 = [[2 * x, -x, -x], [-x, 2 * x, -x], [-x, -x, 2 * x]]
+    out2 = [[-2 * x, x, x], [x, -2 * x, x], [x, x, -2 * x]]
+    return sum(simplex_edge_tensors(2, [in_channel, in_channel, in_channel],
+                                    out1,
+                                    [surround_in_channel, surround_in_channel, surround_in_channel],
+                                    out2,
+                                    ))
 def rgb_2d_end_tensors(north_input_channel=(1, -.5, -.5),
                        southwest_input_channel=(-.5, 1, -.5),
                        southeast_input_channel=(-.5, -.5, 1)

@@ -52,10 +52,13 @@ def image_to_zoom_tensor(image,  # type: np.ndarray
         image_slice = image[image_slicers]
         scaled_image_slice = np.empty(center_dimensions + [num_colors])
         for c in range(num_colors):
-            scaled_image_slice[[slice(None)] * len(center_dimensions) + [slice(c, c + 1)]] = \
-                ndimage.zoom(np.squeeze(image_slice[[slice(None)] * len(image_dimensions) + [slice(c, c + 1)]]),
+            zoomed_image = ndimage.zoom(np.squeeze(image_slice[[slice(None)] * len(image_dimensions) + [slice(c, c + 1)]]),
                              1.0 / (scale ** s), prefilter=False, order=5)[
                     [slice(None)] * len(center_dimensions) + [np.newaxis]]
+            x_max = min(scaled_image_slice.shape[0], zoomed_image.shape[0])
+            y_max = min(scaled_image_slice.shape[1], zoomed_image.shape[1])
+            scaled_image_slice[[slice(None)] * len(center_dimensions) + [slice(c, c + 1)]][0:x_max, 0:y_max] = zoomed_image[0:x_max, 0:y_max]
+
         pyramid_tensor_slicers = [slice(None) for _ in image_dimensions] + [slice(None)]
         pyramid_tensor[[slice(s, s + 1)] + pyramid_tensor_slicers] = scaled_image_slice[[np.newaxis] +
                                                                                         pyramid_tensor_slicers]
