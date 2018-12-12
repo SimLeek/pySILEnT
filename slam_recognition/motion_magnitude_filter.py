@@ -5,6 +5,9 @@ from slam_recognition.edge_tensor.edge_tensor import rgb_2d_edge_tensors_time_di
 from slam_recognition.end_tensor import rgb_2d_end_tensors_time
 
 from slam_recognition.regulator_tensor.gaussian_regulator_tensor import blur_tensor
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import array_ops
+
 
 class MotionFilter1(LineEndFilter):
     callback_depth = 6
@@ -14,13 +17,12 @@ class MotionFilter1(LineEndFilter):
         self.tensor_return_type.append(tf.Tensor)
 
         self.motion_detector = rgb_2d_end_tensors_time()
-        self.prev_in_placeholder=None
-        self.prev_in=None
+        self.prev_in_placeholder = None
+        self.prev_in = None
         self.prev_out_placeholder = None
-        self.prev_out=None
+        self.prev_out = None
 
         self.blur_tensor = blur_tensor(2)
-
 
     def compile(self, pyramid_tensor):
         super(MotionFilter1, self).compile(pyramid_tensor)
@@ -28,24 +30,29 @@ class MotionFilter1(LineEndFilter):
         self.prev_in_placeholder = tf.placeholder_with_default(tf.zeros_like(pyramid_tensor, dtype=tf.float32),
                                                                shape=(pyramid_tensor.shape))
         self.prev_out_placeholder = tf.placeholder_with_default(tf.zeros_like(pyramid_tensor, dtype=tf.float32),
-                                                               shape=(pyramid_tensor.shape))
+                                                                shape=(pyramid_tensor.shape))
 
         with tf.name_scope('MotionFilter1 Compile') and tf.device('/device:GPU:0'):
-            conv_motion = tf.constant(self.motion_detector, dtype=tf.float32, shape=(7,7,3,3))
-            conv_blur = tf.constant(self.blur_tensor, dtype=tf.float32, shape=(3, 3, 3, 3))
+            conv_motion = tf.constant(self.motion_detector, dtype=tf.float32, shape=(3, 3, 3, 3))
 
             # compute if a point has moved, and create a positive output at the new location if so, and negative otherwise
 
             prev = self.prev_in_placeholder
             current = self.compiled_list[-1]
 
-            sparkliness =  tf.maximum(
-                tf.nn.conv2d(current-prev,filter=conv_motion, strides=[1, 1, 1, 1], padding='SAME'),
+            sparkliness = current - prev
+            rgb_weights = [0.3333, 0.3333, 0.3333]
+            gray_float = math_ops.tensordot(sparkliness, rgb_weights, [-1, -1])
+            gray_float = array_ops.expand_dims(gray_float, -1)
+
+            gray_float = tf.image.grayscale_to_rgb(gray_float)
+
+            sparkliness = tf.maximum(
+                tf.nn.conv2d(gray_float, filter=conv_motion, strides=[1, 1, 1, 1], padding='SAME'),
                 [0]
             )
-            #sparkliness = current-prev
-            #sparkliness -= 255
-            sparkliness = tf.maximum(sparkliness, [0])
+
+            sparkliness = tf.maximum(sparkliness / 2.0, [0])
 
             self.compiled_list.append(sparkliness)
 
@@ -57,7 +64,7 @@ class MotionFilter1(LineEndFilter):
         if self.session is None:
             self.session = tf.Session()
         feed_dict = dict({self.input_placeholder: pyramid_tensor[:, :, :, :]})
-        if self.prev_in is not None:
+        if self.prev_in is not None:  # todo: blur input over time as input to compare for movement
             feed_dict.update({self.prev_in_placeholder: self.prev_in[:, :, :, :]})
         if self.prev_out is not None:
             feed_dict.update({self.prev_out_placeholder: self.prev_out[:, :, :, :]})
@@ -66,8 +73,9 @@ class MotionFilter1(LineEndFilter):
         self.prev_out = result[-1]
         return result
 
+
 if __name__ == '__main__':
     filter = MotionFilter1()
 
-    #filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\TimelineHex.mov", fps_limit=24)
+    # filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\TimelineHex.mov", fps_limit=24)
     filter.run_camera()

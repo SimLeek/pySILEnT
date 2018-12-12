@@ -16,7 +16,7 @@ except ImportError:
 class PyramidFilter(object):
     callback_depth = 1
 
-    def __init__(self, output_size=(64, 36), output_colors=3, zoom_ratio=m.e ** .5):
+    def __init__(self, output_size=(72 * 2, 48 * 2), output_colors=3, zoom_ratio=m.e ** .5):
         """Generates several smaller images at different zoom levels from one input image."""
         self.output_size = output_size
         self.output_colors = output_colors
@@ -38,10 +38,7 @@ class PyramidFilter(object):
         """
         np_frame = np.asarray(frame, dtype=np.float32)
         z_tensor = zoom_tensor.from_image(np_frame, self.output_colors, self.output_size, self.zoom_ratio)
-        if depth >= 1:
-            return z_tensor
-        else:
-            return None
+        return z_tensor
 
     def display(self,
                 frame,
@@ -63,6 +60,7 @@ class PyramidFilter(object):
                 result_frame_list = np.concatenate((result_frame_list, frame_list[f]), axis=1)
             if result_frame is None:
                 result_frame = result_frame_list
+                result_frames = [result_frame]
             else:
                 try:
                     result_frame = np.concatenate((result_frame, result_frame_list), axis=0)
@@ -115,7 +113,7 @@ class PyramidFilter(object):
 
     def __run_on_picture(self, picture):
         picture = self.__convert_pic_to_np(picture)
-        if isinstance(picture, (list,tuple)):
+        if isinstance(picture, (list, tuple)):
             results = []
             for p in picture:
                 results.append(self.display(p, 0))
@@ -138,14 +136,14 @@ class PyramidFilter(object):
     def display_picture_results(self, picture, name="pic result"):
         if isinstance(picture, (list, tuple)):
             for p in range(len(picture)):
-                self.display_picture_results(picture[p],name+":{}".format(p))
+                self.display_picture_results(picture[p], name + ":{}".format(p))
         else:
             cv2.imshow(name, picture)
 
     def write_picture_results(self, picture, name="pic result"):
         if isinstance(picture, (list, tuple)):
             for p in range(len(picture)):
-                self.write_picture_results(picture[p],name+"-{}".format(p))
+                self.write_picture_results(picture[p], name + "-{}".format(p))
         else:
             cv2.imwrite("{}.jpg".format(name), picture)
 
