@@ -16,7 +16,7 @@ def end_tensor(end_vector,  # type: Union[np.ndarray, List[int]]
                surround_in,  # type: List[int]
                surround_out,  # type: List[int]
                attractor_function=__linear_function_generator,  # type: Callable[[], Callable[[Real], Real]]
-               size=7
+               size=3
                ):
     """Creates a tensor where angles closer to the end vector are more positive, and angles further are more negative.
 
@@ -38,8 +38,8 @@ def end_tensor(end_vector,  # type: Union[np.ndarray, List[int]]
 
     for tup in itertools.product(*[range(size) for _ in range(ndim)]):
         tup_vec = np.asarray(tup) - np.asarray([size / 2 for _ in range(ndim)])
-        angle_dist = m.acos(np.dot(tup_vec, end_vector) / (np.linalg.norm(tup_vec) * np.linalg.norm(end_vector))) / (
-                2 * m.pi)
+        angle_dist = (m.acos(
+            np.dot(tup_vec, end_vector) / (np.linalg.norm(tup_vec) * np.linalg.norm(end_vector))) - m.pi / 2.0) / m.pi
         zero_centered[tup] = attractor_function(angle_dist * m.pi)
 
     __normalize_center_surround(zero_centered)
@@ -86,10 +86,27 @@ def rgb_2d_end_tensors(north_input_channel=(1, 0, 0),
                        southwest_input_channel=(0, 1, 0),
                        southeast_input_channel=(0, 0, 1)):
     """ Generates all tensors needed to find all line-ends in 2 dimensions."""
-    x = 1
-    xx = 1
-    y = 2
-    yy = 0
+    x = 0.25 / 2
+    xx = -0.5 / 2
+    y = -0.5 / 2
+    yy = 0.25 / 2
+
+    end_tensors = sum(simplex_end_tensors(2, [north_input_channel, southwest_input_channel, southeast_input_channel],
+                                          [[2 * x, -xx, -xx], [-xx, 2 * x, -xx], [-xx, -xx, 2 * x]],
+                                          [north_input_channel, southwest_input_channel, southeast_input_channel],
+                                          [[-y * 2, -yy, -yy], [-yy, -2 * y, -yy], [-yy, -yy, -2 * y]]))
+
+    return end_tensors
+
+
+def rgb_2d_end_tensors_time(north_input_channel=(1, 1, 1),
+                            southwest_input_channel=(1, 1, 1),
+                            southeast_input_channel=(1, 1, 1)):
+    """ Generates all tensors needed to find all line-ends in 2 dimensions."""
+    x = 0.5 / 2
+    xx = -1 / 2
+    y = 1 / 2
+    yy = -0.5 / 2
 
     return sum(simplex_end_tensors(2, [north_input_channel, southwest_input_channel, southeast_input_channel],
                                    [[2 * x, -xx, -xx], [-xx, 2 * x, -xx], [-xx, -xx, 2 * x]],

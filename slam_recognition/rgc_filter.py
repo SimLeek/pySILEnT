@@ -15,14 +15,17 @@ class RGCFilter(PyramidFilter):
 
         self.pyramid_tensor_shape = None
         self.input_placeholder = None
+        self.prev_placeholders = None
         self.compiled_list = []
         self.session = None
-
 
         self.tensor_return_type.append(tf.Tensor)
 
     def compile(self, pyramid_tensor):
-        """runs the RGC filter on the set of images."""
+        """runs the RGC filter on the set of images.
+        :param prev_output:
+        :type prev_output:
+        """
         self.compiled_list = []
         tf.reset_default_graph()
 
@@ -44,11 +47,11 @@ class RGCFilter(PyramidFilter):
         if self.pyramid_tensor_shape != pyramid_tensor.shape:
             self.pyramid_tensor_shape = pyramid_tensor.shape
             self.compile(pyramid_tensor)
+            self.session = tf.Session()
         if self.session is None:
             self.session = tf.Session()
-        result = self.session.run(self.compiled_list, feed_dict={
-            self.input_placeholder: pyramid_tensor[:, :, :, :]
-        })
+        feed_dict = dict({self.input_placeholder: pyramid_tensor[:, :, :, :]})
+        result = self.session.run(self.compiled_list, feed_dict=feed_dict)
 
         return result
 
@@ -60,12 +63,11 @@ class RGCFilter(PyramidFilter):
         z_tensor = super(RGCFilter, self).callback(frame, cam_id)
         tensors = self.run(z_tensor)
         result = []
-        if self.callback_depth > len(tensors):
+        if self.callback_depth >= len(tensors):
             result.append(z_tensor)
-        for i in range(len(tensors)):
-            if self.callback_depth >= i:
-                if self.tensor_return_type[i]==tf.Tensor:
-                    result.append(tensors[i])
+        for i in range(1, len(tensors) + 1):
+            if self.callback_depth >= i and self.tensor_return_type[-i] == tf.Tensor:
+                result.insert(1, tensors[-i])
         return result
 
 

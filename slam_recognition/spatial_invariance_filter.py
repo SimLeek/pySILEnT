@@ -1,6 +1,7 @@
 from slam_recognition.line_end_filter import LineEndFilter
 import tensorflow as tf
 import numpy as np
+import cv2
 
 if False:
     from typing import List
@@ -16,7 +17,7 @@ def dense_tensor_to_sparse(dense):
     return tf.SparseTensor(indices, values, dense_shape_list)
 
 def dense_batch_to_sparse(dense):
-    zero = tf.constant(0, dtype=tf.float32)
+    zero = tf.constant(-1, dtype=tf.float32)
     tensor_list = tf.unstack(dense)
     sparse_tensor_list = []
     for t in tensor_list:
@@ -85,10 +86,11 @@ class SpatialInvarianceFilter(LineEndFilter):
         super(SpatialInvarianceFilter, self).compile(pyramid_tensor)
 
         with tf.name_scope('SpatialInvarianceFilterCompile'):
+            hsv_val = tf.maximum((self.compiled_list[-1][..., 0] + self.compiled_list[-1][..., 1] + self.compiled_list[-1][..., 2]), 0)
             hsv = tf.image.rgb_to_hsv(self.compiled_list[-1])
-            hsv_val = tf.maximum((hsv[..., -1] - 127) * 2, 0)
+
             # hsv_sat = hsv[..., 1] * 255 not useful
-            hsv_hue = tf.where(hsv_val > 0, hsv[..., 0] * 255, tf.zeros_like(hsv[..., 0]))
+            hsv_hue = tf.where(hsv_val >0.0, (hsv[..., 0]) * 255, tf.ones_like(hsv[..., 0])*-1)
 
             current_sparse_list = dense_batch_to_sparse(hsv_hue)
             double_sparse_tensor_list_items(current_sparse_list)
@@ -156,4 +158,7 @@ class SpatialInvarianceFilter(LineEndFilter):
 if __name__ == '__main__':
     filter = SpatialInvarianceFilter()
 
-    filter.run_camera()
+    #filter.run_camera(cam="C:\\Users\\joshm\\Videos\\TimelineHex.mov")
+    filter.run_camera(cam=0)
+    #results = filter.run_on_pictures([r'C:\Users\joshm\OneDrive\Pictures\backgrounds'], write_results=True)
+    #cv2.waitKey()

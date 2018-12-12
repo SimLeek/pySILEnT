@@ -20,13 +20,33 @@ def midget_rgc(n  # type: int
     :param n: number of dimensions
     :return: tensor used for convolution
     """
-    d = 1. / 2
+    d = 1.
     out = \
         center_surround_tensor(n, center_in=[d, 0, 0], center_out=[d, 0, 0],
-                               surround_in=[d / 2, 0, 0], surround_out=[-d, 0, 0]) + \
+                               surround_in=[d, 0, 0], surround_out=[-d, 0, 0]) + \
         center_surround_tensor(n, center_in=[0, d, 0], center_out=[0, d, 0],
-                               surround_in=[0, d / 2, 0], surround_out=[0, -d, 0]) + \
+                               surround_in=[0, d, 0], surround_out=[0, -d, 0]) + \
         center_surround_tensor(n, center_in=[0, 0, d], center_out=[0, 0, d],
-                               surround_in=[0, 0, d / 2], surround_out=[0, 0, -d])
+                               surround_in=[0, 0, d], surround_out=[0, 0, -d])
+
+    return normalize_tensor_positive_negative(out, 4.0, 2.0)
+
+def midget_rgc_full(n  # type: int
+               ):  # type: (...)->np.ndarray
+    """Returns a tensor that performs edge detection on each color. Expects negative input for surround.
+
+    Based off of human retinal ganglian cells.
+
+    :param n: number of dimensions
+    :return: tensor used for convolution
+    """
+    d = 1. / 2
+    out = \
+        center_surround_tensor(n, center_in=[d, 0, 0], center_out=[-d, 0, 0],
+                               surround_in=[d, 0, 0], surround_out=[d, 0, 0]) + \
+        center_surround_tensor(n, center_in=[0, d, 0], center_out=[0, -d, 0],
+                               surround_in=[0, d, 0], surround_out=[0, d, 0]) + \
+        center_surround_tensor(n, center_in=[0, 0, d], center_out=[0, 0, -d],
+                               surround_in=[0, 0, d], surround_out=[0, 0, d])
 
     return normalize_tensor_positive_negative(out, 4.0, 2.0)
