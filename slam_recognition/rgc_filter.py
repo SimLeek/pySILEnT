@@ -27,13 +27,14 @@ class RGCFilter(PyramidFilter):
         :type prev_output:
         """
         self.compiled_list = []
-        tf.reset_default_graph()
 
         input_placeholder = tf.placeholder(dtype=tf.float32, shape=(pyramid_tensor.shape))
 
         self.input_placeholder = input_placeholder
 
         with tf.name_scope('RGCFilter Compile') and tf.device('/device:GPU:0'):
+
+
             conv_rgc = tf.constant(self.rgc, dtype=tf.float32, shape=(3, 3, 3, 3))
 
             compiled_rgc = tf.maximum(
@@ -48,8 +49,10 @@ class RGCFilter(PyramidFilter):
             self.pyramid_tensor_shape = pyramid_tensor.shape
             self.compile(pyramid_tensor)
             self.session = tf.Session()
+            self.session.run(tf.initializers.global_variables())
         if self.session is None:
             self.session = tf.Session()
+            self.session.run(tf.initializers.global_variables())
         feed_dict = dict({self.input_placeholder: pyramid_tensor[:, :, :, :]})
         result = self.session.run(self.compiled_list, feed_dict=feed_dict)
 
@@ -68,7 +71,7 @@ class RGCFilter(PyramidFilter):
         for i in range(1, len(tensors) + 1):
             if self.callback_depth >= i and self.tensor_return_type[-i] == tf.Tensor:
                 result.insert(1, tensors[-i])
-        return result
+        return result[0]
 
 
 if __name__ == '__main__':

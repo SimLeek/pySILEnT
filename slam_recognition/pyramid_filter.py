@@ -16,7 +16,7 @@ except ImportError:
 class PyramidFilter(object):
     callback_depth = 1
 
-    def __init__(self, output_size=(72 * 2, 48 * 2), output_colors=3, zoom_ratio=m.e ** .5):
+    def __init__(self, output_size=(36*4, 24*4), output_colors=3, zoom_ratio=m.e ** .5):
         """Generates several smaller images at different zoom levels from one input image."""
         self.output_size = output_size
         self.output_colors = output_colors
@@ -36,11 +36,11 @@ class PyramidFilter(object):
         :param cam_id: Unused.
         :return: Zoom tensor to use.
         """
-        np_frame = np.asarray(frame, dtype=np.float32)
-        z_tensor = zoom_tensor.from_image(np_frame, self.output_colors, self.output_size, self.zoom_ratio)
+        z_tensor = np.asarray([frame], dtype=np.float32)
+        #z_tensor = zoom_tensor.from_image(z_tensor, self.output_colors, self.output_size, self.zoom_ratio)
         return z_tensor
 
-    def display(self,
+    '''def display(self,
                 frame,
                 cam_id,
                 ):
@@ -67,17 +67,24 @@ class PyramidFilter(object):
                     result_frames = [result_frame]
                 except ValueError:
                     result_frames = [result_frame_list, result_frame]
-        return result_frames
+        return result_frames'''
 
-    def run_camera(self, cam=0, fps_limit=30):
+    def display(self,
+                frame,
+                cam_id,
+                ):
+        frame_from_callback = self.callback(frame, cam_id)
+        return np.array(frame_from_callback)/255.0
+
+    def run_camera(self, cam=0, fps_limit=60, size=(99999,99999)):
         t = wp.VideoHandlerThread(cam, [self.display] + wp.display_callbacks,
-                                  request_size=(99999, 99999),
+                                  request_size=size,
                                   high_speed=True,
                                   fps_limit=fps_limit)
 
         t.start()
 
-        ws.SubscriberWindows(window_names=["Pyramid", "t"],
+        ws.SubscriberWindows(window_names=[str(i) for i in range(10)],
                              video_sources=[cam]
                              ).loop()
 
@@ -152,3 +159,4 @@ if __name__ == '__main__':
     filter = PyramidFilter()
 
     filter.run_camera()
+

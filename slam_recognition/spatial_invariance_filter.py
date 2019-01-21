@@ -2,6 +2,7 @@ from slam_recognition.line_end_filter import LineEndFilter
 import tensorflow as tf
 import numpy as np
 import cv2
+# todo: add boosting to fix inputting full semantic while keeping sparsity!!!
 
 if False:
     from typing import List
@@ -127,7 +128,7 @@ class SpatialInvarianceFilter(LineEndFilter):
             for i in range(len(sparse_tensor.indices)):
                 for j in range(len(sparse_tensor.indices)):
                     new_indices.append(sparse_tensor.indices[j]-sparse_tensor.indices[i]+sparse_tensor.dense_shape/2)
-                    new_values.append((sparse_tensor.values[j]-sparse_tensor.values[i])%255)
+                    new_values.append((sparse_tensor.values[j]))
             np_indices = np.array(new_indices)
             if np_indices.size>0:
                 new_indices, indices_for_vals = np.unique(np_indices, axis=0, return_index=True)
