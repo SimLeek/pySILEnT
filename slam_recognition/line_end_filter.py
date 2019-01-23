@@ -6,7 +6,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from slam_recognition.color_tensor import color_tensor
 
-def generate_constant_recovery(tensor_in, recovery_amount=6):
+def generate_constant_recovery(tensor_in, recovery_amount=4):
     return tf.ones_like(tensor_in)*recovery_amount
 
 def generate_input_based_recovery(tensor_in, recovery_percentage=0.8):
@@ -39,6 +39,8 @@ class LineEndFilter(OrientationFilter):
         self.constant_recovery = True
         self.input_based_recovery = False
 
+        self.excitation_max = 8
+
     def pre_compile(self, pyramid_tensor):
         self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=(pyramid_tensor.shape))
 
@@ -46,7 +48,7 @@ class LineEndFilter(OrientationFilter):
         rgb_weights = [0.3333, 0.3333, 0.3333]
         gray_float = math_ops.tensordot(self.input_placeholder, rgb_weights, [-1, -1])
         gray_float = array_ops.expand_dims(gray_float, -1)
-        self.energy_values = tf.Variable(tf.ones_like(gray_float) , dtype=tf.float32)
+        self.energy_values = tf.Variable(tf.ones_like(gray_float)*self.excitation_max , dtype=tf.float32)
 
         self.precompile_list= [self.energy_values]
 
@@ -84,17 +86,16 @@ class LineEndFilter(OrientationFilter):
 
             fire_strength = has_fired * gray_float
 
-            cost_of_firing = 200
+            cost_of_firing = 1.0/255
 
             exhaustion_max = 8
-            excitation_max = 8
 
-            exhaustion = has_fired*cost_of_firing
+            exhaustion = has_fired*255.0-fire_strength
 
             recovery = generate_recovery(fire_strength, self.input_based_recovery, self.constant_recovery)
 
             update_energy = self.energy_values.assign(
-                tf.clip_by_value((self.energy_values*255-exhaustion+recovery)/255, -exhaustion_max, excitation_max)
+                tf.clip_by_value((self.energy_values*255-exhaustion+recovery)/255, -exhaustion_max, self.excitation_max)
             )
 
             has_fired2 = tf.image.grayscale_to_rgb(has_fired) * compiled_line_end_0
@@ -137,17 +138,18 @@ class LineEndFilter(OrientationFilter):
 
     def callback(self,
                  frame,
-                 cam_id,
+                 cam_id=None,
                  depth=2
                  ):
         z_tensor = super(LineEndFilter, self).callback(frame, cam_id)
         tensors = self.run(z_tensor)
-        return [tensors[x][0] for x in range(4)]
+        return [frame]+[tensors[x][0] for x in range(4)]
 
 
 if __name__ == '__main__':
     filter = LineEndFilter()
 
-    filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\2019-01-18 21-49-54.mp4", fps_limit=60)
+    #filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\2019-01-18 21-49-54.mp4")
+    filter.run_on_pictures(r"C:\\Users\\joshm\\OneDrive\\Pictures\\=O\\humangirleatfood.jpeg", resize=(-1,320))
     #filter.run_camera(0, size=(800,600))
     # results = filter.run_on_pictures([r'C:\Users\joshm\OneDrive\Pictures\backgrounds'], write_results=True)

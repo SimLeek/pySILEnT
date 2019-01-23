@@ -40,35 +40,6 @@ class PyramidFilter(object):
         #z_tensor = zoom_tensor.from_image(z_tensor, self.output_colors, self.output_size, self.zoom_ratio)
         return z_tensor
 
-    '''def display(self,
-                frame,
-                cam_id,
-                ):
-        frame_from_callback = self.callback(frame, cam_id)
-        if frame_from_callback is None:
-            return None
-        frame_array = [zoom_tensor.to_image_list(f) for f in frame_from_callback]
-        if len(frame_array) == 0:
-            return
-        result_frame = None
-        for frame_list in frame_array:
-            for f in range(len(frame_list)):
-                if frame_list[f].ndim == 2:
-                    frame_list[f] = np.stack((frame_list[f],) * 3, axis=-1)
-            result_frame_list = frame_list[0]
-            for f in range(1, len(frame_list)):
-                result_frame_list = np.concatenate((result_frame_list, frame_list[f]), axis=1)
-            if result_frame is None:
-                result_frame = result_frame_list
-                result_frames = [result_frame]
-            else:
-                try:
-                    result_frame = np.concatenate((result_frame, result_frame_list), axis=0)
-                    result_frames = [result_frame]
-                except ValueError:
-                    result_frames = [result_frame_list, result_frame]
-        return result_frames'''
-
     def display(self,
                 frame,
                 cam_id,
@@ -76,18 +47,19 @@ class PyramidFilter(object):
         frame_from_callback = self.callback(frame, cam_id)
         return np.array(frame_from_callback)/255.0
 
-    def run_camera(self, cam=0, fps_limit=60, size=(99999,99999)):
-        t = wp.VideoHandlerThread(cam, [self.display] + wp.display_callbacks,
+    def run_camera(self, cam=0, fps_limit=60, size=(-1,-1), mjpeg_compression=True):
+        t = wp.VideoHandlerThread(video_source=cam, callbacks=[self.display]+wp.display_callbacks,
                                   request_size=size,
-                                  high_speed=True,
+                                  high_speed=mjpeg_compression,
                                   fps_limit=fps_limit)
 
         t.start()
 
         ws.SubscriberWindows(window_names=[str(i) for i in range(10)],
-                             video_sources=[cam]
+                             video_sources=[cam],
                              ).loop()
-
+        if isinstance(cam, np.ndarray):
+            cam = str(hash(str(cam)))
         wp.CamCtrl.stop_cam(cam)
 
         t.join()
@@ -118,41 +90,23 @@ class PyramidFilter(object):
 
         return picture
 
-    def __run_on_picture(self, picture):
+    def __run_on_picture(self, picture, resize):
         picture = self.__convert_pic_to_np(picture)
         if isinstance(picture, (list, tuple)):
             results = []
             for p in picture:
-                results.append(self.display(p, 0))
+                results.append(self.run_camera(p, size=resize))
             return results
-        return self.display(picture, 0)
+        return self.run_camera(picture, size=resize)
 
-    def run_on_pictures(self, pictures, display_results=False, write_results=False):
+    def run_on_pictures(self, pictures, resize=(-1,-1)):
         if not isinstance(pictures, (list, tuple)):
-            return self.__run_on_picture(pictures)
+            return self.__run_on_picture(pictures, resize)
         else:
             results = []
             for picture in pictures:
-                results.append(self.__run_on_picture(picture))
-            if display_results:
-                self.display_picture_results(results)
-            if write_results:
-                self.write_picture_results(results)
+                results.append(self.__run_on_picture(picture, resize))
             return results
-
-    def display_picture_results(self, picture, name="pic result"):
-        if isinstance(picture, (list, tuple)):
-            for p in range(len(picture)):
-                self.display_picture_results(picture[p], name + ":{}".format(p))
-        else:
-            cv2.imshow(name, picture)
-
-    def write_picture_results(self, picture, name="pic result"):
-        if isinstance(picture, (list, tuple)):
-            for p in range(len(picture)):
-                self.write_picture_results(picture[p], name + "-{}".format(p))
-        else:
-            cv2.imwrite("{}.jpg".format(name), picture)
 
 
 if __name__ == '__main__':

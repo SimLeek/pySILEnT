@@ -1,4 +1,4 @@
 scipy
 numpy
 tensorflow-gpu
-cvpubsubs
+cvpubsubs==0.3.3

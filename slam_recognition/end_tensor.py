@@ -86,29 +86,30 @@ def rgb_2d_end_tensors(north_input_channel=(1, 0, 0),
                        southwest_input_channel=(0, 1, 0),
                        southeast_input_channel=(0, 0, 1)):
     """ Generates all tensors needed to find all line-ends in 2 dimensions."""
-    x = 0.25 / 2
-    xx = -0.5 / 2
-    y = -0.5 / 2
-    yy = 0.25 / 2
+    x = 0.5 / 2
+    xx = -0.25 / 2
+    y = 1.0 / 2
+    yy = 1.0 / 2
 
     end_tensors = sum(simplex_end_tensors(2, [north_input_channel, southwest_input_channel, southeast_input_channel],
-                                          [[2 * x, -xx, -xx], [-xx, 2 * x, -xx], [-xx, -xx, 2 * x]],
+                                          [[x, -xx, -xx], [-xx, x, -xx], [-xx, -xx, x]],
                                           [north_input_channel, southwest_input_channel, southeast_input_channel],
-                                          [[-y * 2, -yy, -yy], [-yy, -2 * y, -yy], [-yy, -yy, -2 * y]]))
+                                          [[y, -yy, -yy], [-yy, y, -yy], [-yy, -yy, y]]))
 
     return end_tensors
 
 
-def rgb_2d_end_tensors_time(north_input_channel=(1, 1, 1),
+'''def rgb_2d_end_tensors_time(north_input_channel=(1, 1, 1),
                             southwest_input_channel=(1, 1, 1),
                             southeast_input_channel=(1, 1, 1)):
     """ Generates all tensors needed to find all line-ends in 2 dimensions."""
-    x = 0.5 / 2
-    xx = -1 / 2
-    y = 1 / 2
-    yy = -0.5 / 2
+    x = 0.1 / 2
+    xx = -10.0
+    y = 0.5 / 2
+    yy = -10.0
 
     return sum(simplex_end_tensors(2, [north_input_channel, southwest_input_channel, southeast_input_channel],
                                    [[2 * x, -xx, -xx], [-xx, 2 * x, -xx], [-xx, -xx, 2 * x]],
                                    [north_input_channel, southwest_input_channel, southeast_input_channel],
-                                   [[-y * 2, -yy, -yy], [-yy, -2 * y, -yy], [-yy, -yy, -2 * y]]))
+                                   [[-y * 2, -yy, -yy], [-yy, -2 * y, -yy], [-yy, -yy, -2 * y]]))'''
+
