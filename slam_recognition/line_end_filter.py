@@ -6,6 +6,9 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from slam_recognition.color_tensor import color_tensor
 
+if False:
+    from typing import Optional
+
 def generate_constant_recovery(tensor_in, recovery_amount=4):
     return tf.ones_like(tensor_in)*recovery_amount
 
@@ -22,6 +25,33 @@ def generate_recovery(tensor_in, is_input_based=False, is_constant=True):
     elif not is_input_based and not is_constant:
         raise ValueError("You must choose a type of recovery")
     return recovery
+
+def top_percentage_points(input_color, # type: tf.Tensor
+                          top_percent=0.1,
+                          input_gray=None # type: Optional[tf.Tensor]
+                          ):
+    """turns everything except the top percentage of values in a tensor to zero."""
+    if input_gray is None:
+        rgb_weights = [0.3333, 0.3333, 0.3333]
+        input_gray = math_ops.tensordot(input_color, rgb_weights, [-1, -1])
+        input_gray = array_ops.expand_dims(input_gray, -1)
+
+    max_pooled_in_tensor_2 = tf.nn.max_pool(input_gray, (1, input_color.shape[1], input_color.shape[2], 1),
+                                            strides=(1, input_color.shape[1], input_color.shape[2], 1),
+                                            padding='SAME')
+    min_pooled_in_tensor_2 = -1.0 * tf.nn.max_pool(-input_gray, (1, input_color.shape[1], input_color.shape[2], 1),
+                                                   strides=(1, input_color.shape[1], input_color.shape[2], 1),
+                                                   padding='SAME')
+    top_percent_pool = (1.0 - top_percent) * max_pooled_in_tensor_2 + ( top_percent ) * min_pooled_in_tensor_2
+    resized_pool = tf.image.resize_images(top_percent_pool, input_gray.shape[1:3],
+                                          method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    vis_max_2 = input_color * tf.image.grayscale_to_rgb(tf.where(tf.greater_equal(input_gray, resized_pool),
+                                                                         tf.ones_like(resized_pool),
+                                                                         tf.zeros_like(resized_pool)))
+
+    return vis_max_2
+
+
 
 class LineEndFilter(OrientationFilter):
     callback_depth = 2
@@ -40,6 +70,12 @@ class LineEndFilter(OrientationFilter):
         self.input_based_recovery = False
 
         self.excitation_max = 8
+        self.__pool_width = 0
+        self.__pool_height = 0
+        self.top_percent_pool = 0.1
+
+        self.relativity_tensor_shape = [4,50,50,3]
+
 
     def pre_compile(self, pyramid_tensor):
         self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=(pyramid_tensor.shape))
@@ -53,7 +89,7 @@ class LineEndFilter(OrientationFilter):
         self.precompile_list= [self.energy_values]
 
     def compile(self, pyramid_tensor):
-        with tf.name_scope('LineEndFilter Compile') and tf.device('/device:GPU:0'):
+        with tf.name_scope('LineEndFilter Compile') and tf.device('/device:CPU:0'):
             super(LineEndFilter, self).compile(pyramid_tensor)
 
             simplex_end_filter = tf.constant(self.simplex_end_stop, dtype=tf.float32, shape=(3, 3, 3, 3))
@@ -70,12 +106,6 @@ class LineEndFilter(OrientationFilter):
             gray_float = array_ops.expand_dims(gray_float, -1)
 
             # todo: replace with faster and more stable grouping areas
-            max_pooled_in_tensor_2 = tf.nn.max_pool(gray_float, (1, 100, 100, 1), strides=(1, 100, 100, 1),
-                                                    padding='SAME')
-            resized_pool = tf.image.resize_images(max_pooled_in_tensor_2, gray_float.shape[1:3],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            vis_max_2 = compiled_line_end_0*tf.image.grayscale_to_rgb(tf.where(tf.equal(gray_float, resized_pool),
-                                tf.ones_like(resized_pool),
-                                                            tf.zeros_like(resized_pool)))
 
             memory_values = gray_float**self.energy_values.value()
             max_pooled_in_tensor = tf.nn.max_pool(memory_values, (1,3, 3,1), strides=(1,1,1,1), padding='SAME')
@@ -86,7 +116,6 @@ class LineEndFilter(OrientationFilter):
 
             fire_strength = has_fired * gray_float
 
-            cost_of_firing = 1.0/255
 
             exhaustion_max = 8
 
@@ -100,10 +129,40 @@ class LineEndFilter(OrientationFilter):
 
             has_fired2 = tf.image.grayscale_to_rgb(has_fired) * compiled_line_end_0
 
+            top_percent_points = top_percentage_points(compiled_line_end_0, self.top_percent_pool, gray_float)
+
+            top_idxs = tf.where(tf.not_equal(top_percent_points, 0))
+
+            #def body(i, relativity, slices):
+            w = int(self.relativity_tensor_shape[1] / 2.0)
+            h = int(self.relativity_tensor_shape[2] / 2.0)
+            padded_firing = tf.pad(has_fired2, [[0, 0], [w, w], [h, h], [0, 0]], "CONSTANT")
+
+            def get_slices(slice):
+                value_slice = padded_firing[tf.newaxis,
+                              :,
+                              slice[1]:slice[1]+w*2,
+                              slice[2]:slice[2]+h*2,
+                              :
+                          ]
+                return value_slice
+            batch_items = tf.map_fn(fn=get_slices,
+                                    elems=top_idxs,
+                                    dtype=tf.float32)
+            added_relative = tf.squeeze(tf.reduce_sum(batch_items, 0),[0])
 
 
+            relativity_tensor = tf.cast(added_relative, tf.float32)
+            #    return i, tf.clip_by_value(added_relative,0,255), slices
 
-            self.compiled_list.extend([tf.image.grayscale_to_rgb(update_energy*(255.0/16)+127.5),vis_max_2,tf.clip_by_value(has_fired2, 0, 255), compiled_line_end_0])
+            #i_start = tf.constant(0, dtype=tf.int64)
+            #i, relativity_tensor, idxs = tf.while_loop(body, while_condition, [i_start, relativity_tensor, top_idxs],
+            #                                           shape_invariants=[i_start.get_shape(),
+            #                                                             tf.TensorShape(self.relativity_tensor_shape),
+            #                                                             tf.TensorShape([None,None])]
+            #                                           )
+
+            self.compiled_list.extend([tf.image.grayscale_to_rgb(update_energy*(255.0/16)+127.5),has_fired2,top_percent_points,relativity_tensor, compiled_line_end_0])
             #self.compiled_list.extend([tf.clip_by_value(compiled_line_end_0, 0, 255)])
 
     def run(self, pyramid_tensor):
@@ -111,6 +170,8 @@ class LineEndFilter(OrientationFilter):
         if self.pyramid_tensor_shape != pyramid_tensor.shape:
             g = tf.Graph()
             with g.as_default():
+                self.__pool_width = pyramid_tensor.shape[1]
+                self.__pool_height = pyramid_tensor.shape[2]
                 self.pyramid_tensor_shape = pyramid_tensor.shape
                 self.pre_compile(pyramid_tensor)
                 initter = tf.initializers.global_variables()
@@ -123,6 +184,8 @@ class LineEndFilter(OrientationFilter):
         if self.session is None:
             g = tf.Graph()
             with g.as_default():
+                self.__pool_width = pyramid_tensor.shape[1]
+                self.__pool_height = pyramid_tensor.shape[2]
                 self.pre_compile(pyramid_tensor)
                 initter = tf.initializers.global_variables()
                 self.compile(pyramid_tensor)
@@ -132,7 +195,7 @@ class LineEndFilter(OrientationFilter):
                 #self.session.run(self.precompile_list, feed_dict=feed_dict)
         feed_dict = dict({self.input_placeholder: pyramid_tensor[:, :, :, :]})
 
-        result = self.session.run(self.compiled_list[3:7], feed_dict=feed_dict)
+        result = self.session.run(self.compiled_list[3:8], feed_dict=feed_dict)
 
         return result
 
@@ -143,7 +206,7 @@ class LineEndFilter(OrientationFilter):
                  ):
         z_tensor = super(LineEndFilter, self).callback(frame, cam_id)
         tensors = self.run(z_tensor)
-        return [frame]+[tensors[x][0] for x in range(4)]
+        return [frame]+[[tensors[x][y] for y in range(len(tensors[x]))] for x in range(5)]
 
 
 if __name__ == '__main__':
