@@ -72,9 +72,10 @@ class LineEndFilter(OrientationFilter):
         self.excitation_max = 8
         self.__pool_width = 0
         self.__pool_height = 0
-        self.top_percent_pool = 0.1
+        self.top_percent_pool = 0.4
+        self.rotation_invariance = False
 
-        self.relativity_tensor_shape = [4,50,50,3]
+        self.relativity_tensor_shape = [4, self.output_size[1]*2,self.output_size[0]*2,3]
 
 
     def pre_compile(self, pyramid_tensor):
@@ -88,6 +89,8 @@ class LineEndFilter(OrientationFilter):
 
         self.precompile_list= [self.energy_values]
 
+        self.padded_firing = None
+
     def compile(self, pyramid_tensor):
         with tf.name_scope('LineEndFilter Compile') and tf.device('/device:CPU:0'):
             super(LineEndFilter, self).compile(pyramid_tensor)
@@ -99,6 +102,10 @@ class LineEndFilter(OrientationFilter):
                     input=self.compiled_list[-1], filter=simplex_end_filter, strides=[1, 1, 1, 1], padding='SAME'),
                 [0]
             )
+
+            center_shape = compiled_line_end_0.shape - tf.constant([0,4,4,0])
+            center_box = tf.pad(tf.ones(center_shape), [[0,0],[2,2],[2,2],[0,0]])
+            compiled_line_end_0 = tf.where(tf.equal(center_box,1), compiled_line_end_0, tf.zeros_like(compiled_line_end_0))
 
             # todo: move to its own filter class
             rgb_weights = [0.3333, 0.3333, 0.3333]
@@ -129,23 +136,38 @@ class LineEndFilter(OrientationFilter):
 
             has_fired2 = tf.image.grayscale_to_rgb(has_fired) * compiled_line_end_0
 
-            top_percent_points = top_percentage_points(compiled_line_end_0, self.top_percent_pool, gray_float)
+            top_percent_points = top_percentage_points(has_fired2, self.top_percent_pool, gray_float)
 
-            top_idxs = tf.where(tf.not_equal(top_percent_points, 0))
+            top_idxs = tf.cast(tf.where(tf.not_equal(top_percent_points, 0)), tf.int32)
 
             #def body(i, relativity, slices):
             w = int(self.relativity_tensor_shape[1] / 2.0)
             h = int(self.relativity_tensor_shape[2] / 2.0)
-            padded_firing = tf.pad(has_fired2, [[0, 0], [w, w], [h, h], [0, 0]], "CONSTANT")
+            self.padded_firing = tf.pad(has_fired2, [[0, 0], [w, w], [h, h], [0, 0]], "CONSTANT")
 
             def get_slices(slice):
-                value_slice = padded_firing[tf.newaxis,
-                              :,
+                if self.rotation_invariance:
+                    raise NotImplementedError("This will require another variable")
+                    angle_rgb = self.padded_firing[slice[0]:slice[0]+1,slice[1]:slice[1]+1,slice[2]:slice[2]+1,:]
+                    angle_hue = tf.image.rgb_to_hsv(angle_rgb)[0:1,0:1,0:1,0:1]
+                    angle = tf.squeeze(angle_hue)
+                    angle.set_shape([1])
+                    pad_rot = tf.contrib.image.transform(
+                        self.padded_firing,
+                        tf.contrib.image.angles_to_projective_transforms(
+                            angle, tf.cast(tf.shape(self.padded_firing)[1], tf.float32), tf.cast(tf
+                                                                                             .shape(self.padded_firing)[2],
+                                                                                             tf.float32)
+                        ))
+                else:
+                    pad_rot = self.padded_firing
+                value_slice = pad_rot[ tf.newaxis,
+                              slice[0]:slice[0]+1,
                               slice[1]:slice[1]+w*2,
                               slice[2]:slice[2]+h*2,
                               :
                           ]
-                return value_slice
+                return tf.pad(value_slice, [[0,0],[slice[0], tf.cast(tf.shape(pad_rot), tf.int32)[0]-slice[0]], [0,0], [0,0], [0, 0]], "CONSTANT")
             batch_items = tf.map_fn(fn=get_slices,
                                     elems=top_idxs,
                                     dtype=tf.float32)
@@ -213,6 +235,6 @@ if __name__ == '__main__':
     filter = LineEndFilter()
 
     #filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\2019-01-18 21-49-54.mp4")
-    filter.run_on_pictures(r"C:\\Users\\joshm\\OneDrive\\Pictures\\=O\\humangirleatfood.jpeg", resize=(-1,320))
-    #filter.run_camera(0, size=(800,600))
+    #filter.run_on_pictures(r"C:\\Users\\joshm\\OneDrive\\Pictures\\robots\\repr\\phone.png", resize=(-1,480))
+    filter.run_camera(0, size=(800,600))
     # results = filter.run_on_pictures([r'C:\Users\joshm\OneDrive\Pictures\backgrounds'], write_results=True)

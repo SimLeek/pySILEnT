@@ -16,7 +16,7 @@ except ImportError:
 class PyramidFilter(object):
     callback_depth = 1
 
-    def __init__(self, output_size=(36*2, 24*2), output_colors=3, zoom_ratio=m.e ** .5):
+    def __init__(self, output_size=(36, 24), output_colors=3, zoom_ratio=m.e ** .5):
         """Generates several smaller images at different zoom levels from one input image."""
         self.output_size = output_size
         self.output_colors = output_colors
