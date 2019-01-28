@@ -99,17 +99,3 @@ def rgb_2d_end_tensors(north_input_channel=(1, 0, 0),
     return end_tensors
 
 
-'''def rgb_2d_end_tensors_time(north_input_channel=(1, 1, 1),
-                            southwest_input_channel=(1, 1, 1),
-                            southeast_input_channel=(1, 1, 1)):
-    """ Generates all tensors needed to find all line-ends in 2 dimensions."""
-    x = 0.1 / 2
-    xx = -10.0
-    y = 0.5 / 2
-    yy = -10.0
-
-    return sum(simplex_end_tensors(2, [north_input_channel, southwest_input_channel, southeast_input_channel],
-                                   [[2 * x, -xx, -xx], [-xx, 2 * x, -xx], [-xx, -xx, 2 * x]],
-                                   [north_input_channel, southwest_input_channel, southeast_input_channel],
-                                   [[-y * 2, -yy, -yy], [-yy, -2 * y, -yy], [-yy, -yy, -2 * y]]))'''
-
