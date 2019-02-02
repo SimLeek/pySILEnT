@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def generate_constant_recovery(tensor_in, recovery_amount=4):
+def generate_constant_recovery(tensor_in, recovery_amount=10):
     return tf.ones_like(tensor_in) * recovery_amount
 
 

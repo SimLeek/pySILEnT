@@ -43,7 +43,7 @@ def get_centroids(value_tensor,  # type: tf.Tensor
     resized_pool = tf.image.resize_nearest_neighbor(corrected_centroid_pool, value_tensor.shape[1:num_channels+1])
     centroids = math.equality_distance(resized_pool, ind_tens)
     value_centroids = tf.reduce_sum(centroids, -1, keepdims=True)
-    return value_centroids
+    return value_centroids, total_pool
 
 def get_centroids_array(value_tensor,  # type: tf.Tensor
                   region_shape,
@@ -69,3 +69,4 @@ def get_centroids_array(value_tensor,  # type: tf.Tensor
     corrected_centroid_pool = centroid_pool/total_pool
     return corrected_centroid_pool
 
+#def get_cen
