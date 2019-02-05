@@ -1,60 +1,20 @@
-from slam_recognition.orientation_filter import OrientationFilter
+from slam_recognition.rgby_filter import RGBYFilter
 import tensorflow as tf
 from slam_recognition.end_tensor import rgb_2d_end_tensors
+from slam_recognition.util.energy.exhaustion import initialize_exhaustion, get_exhaustion
 
-from slam_recognition.util.energy.recovery import generate_recovery
 from slam_recognition.util.selection.top_value_points import max_value_indices_region
 from slam_recognition.util.color.get_value import get_value_from_color
 from slam_recognition.util.selection.isolate_rectangle import pad_inwards
-from slam_recognition.util.relativity.get_relative_to_indices import get_relative_to_indices_regions
 from slam_recognition.util.apply_filter import apply_filter
-from slam_recognition.util import index_tensor, get_centroids
+from slam_recognition.util import get_centroids
+from slam_recognition.filters import orientation_filter
 import math as m
-from slam_recognition.util import color
 
 debug = True
 
 
-def initialize_exhaustion(input_tensor, initial_multiplier=8):
-    return tf.Variable(tf.ones_like(input_tensor) * initial_multiplier, dtype=tf.float32)
-
-
-def get_exhaustion(input_tensor,  # type: tf.Tensor
-                   exhaustion_tensor,  # type: tf.Variable
-                   exhaustion_max=1,
-                   excitation_max=1,
-                   input_based_recovery=False,
-                   constant_recovery=True,
-                   for_visualizing=False):
-    memory_biased_values = input_tensor ** exhaustion_tensor.value()
-    max_pooled_memory = tf.nn.max_pool(memory_biased_values, (1, 3, 3, 1), strides=(1, 1, 1, 1), padding='SAME')
-
-    has_fired = tf.where(tf.equal(memory_biased_values, max_pooled_memory),
-                         tf.ones_like(max_pooled_memory),
-                         tf.zeros_like(max_pooled_memory))
-
-    fire_strength = has_fired * input_tensor
-
-    exhaustion = has_fired * 255.0
-
-    recovery = generate_recovery(fire_strength, input_based_recovery, constant_recovery)
-
-    update_energy = exhaustion_tensor.assign(
-        tf.clip_by_value((exhaustion_tensor * 255.0 - exhaustion + recovery) / 255.0, -exhaustion_max,
-                         excitation_max)
-    )
-
-    if for_visualizing:
-        has_fired2 = tf.image.grayscale_to_rgb(has_fired) * input_tensor
-        update_color_normer = 255.0 / (exhaustion_max+excitation_max)
-        update_color_centerer = (excitation_max/(exhaustion_max+excitation_max))*255.0
-        update_energy = tf.image.grayscale_to_rgb(update_energy * update_color_normer + update_color_centerer)
-        return has_fired2, update_energy
-    else:
-        return has_fired, update_energy
-
-
-class LineEndFilter(OrientationFilter):
+class LineEndFilter(RGBYFilter):
     callback_depth = 2
 
     def __init__(self, n_dimensions=2, **argv):
@@ -88,7 +48,7 @@ class LineEndFilter(OrientationFilter):
 
         centroids, centroid_importances = get_centroids(gray_line_end_tensor / 255.0, self.centroid_region_shape,
                                                         debug=True)
-        self.energy_values = initialize_exhaustion(centroid_importances*255)
+        self.energy_values = initialize_exhaustion(centroid_importances * 255)
 
         self.precompile_list = [self.energy_values]
 
@@ -99,7 +59,9 @@ class LineEndFilter(OrientationFilter):
             if isinstance(self.region_shape, list):
                 self.region_shape = tf.TensorShape(self.region_shape)
 
-            line_end_tensor = tf.maximum(apply_filter(self.compiled_list[-1], self.simplex_end_stop), [0])
+            orient_tensor = orientation_filter(self.compiled_list[-1])
+
+            line_end_tensor = tf.maximum(apply_filter(orient_tensor, self.simplex_end_stop), [0])
             line_end_tensor = tf.clip_by_value(line_end_tensor, 0, 255)
             padded_line_end_tensor = pad_inwards(line_end_tensor, [[0, 0], [2, 2], [2, 2], [0, 0]])
 
@@ -107,13 +69,14 @@ class LineEndFilter(OrientationFilter):
 
             centroids, centroid_importances = get_centroids(gray_line_end_tensor / 255.0, self.centroid_region_shape,
                                                             debug=True)
-            centroid_importances=tf.clip_by_value(centroid_importances*(255/4.0), 1, 256)-1
+            centroid_importances = tf.clip_by_value(centroid_importances * (255 / 4.0), 1, 256) - 1
             half_shape = tf.cast(gray_line_end_tensor.shape[1:3], tf.float32) / tf.constant(m.e ** .5)
             im2 = tf.image.resize_nearest_neighbor(gray_line_end_tensor, tf.cast(half_shape, tf.int32))
             centroids2, centroid_importances2 = get_centroids(im2 / 255.0, self.centroid_region_shape, debug=True)
 
-            fired_importants, update_importances = get_exhaustion(centroid_importances, self.energy_values, for_visualizing=True)
-            #fired_importants2, update_importances2 = get_exhaustion(centroid_importances2, self.energy_values, for_visualizing=True)
+            fired_importants, update_importances = get_exhaustion(centroid_importances, self.energy_values,
+                                                                  for_visualizing=True)
+            # fired_importants2, update_importances2 = get_exhaustion(centroid_importances2, self.energy_values, for_visualizing=True)
 
             top_percent_points = max_value_indices_region(padded_line_end_tensor,
                                                           self.region_shape, gray_line_end_tensor)
@@ -124,7 +87,7 @@ class LineEndFilter(OrientationFilter):
         #    relativity_tensor = get_relative_to_indices_regions(has_fired2,self.region_shape, top_percent_points)
 
         self.compiled_list.extend(
-            [255 - centroids * 255, 255 - centroids2 * 255, fired_importants*255, update_importances,
+            [255 - centroids * 255, 255 - centroids2 * 255, fired_importants * 255, update_importances,
              padded_line_end_tensor])
         # self.compiled_list.extend(
         #    [tf.image.grayscale_to_rgb(update_energy * (255.0 / 16) + 127.5), centroids,
@@ -168,13 +131,13 @@ class LineEndFilter(OrientationFilter):
                  ):
         z_tensor = super(LineEndFilter, self).callback(frame, cam_id)
         tensors = self.run(z_tensor)
-        return [frame] + [[tensors[x][y] for y in range(len(tensors[x]))] for x in range(5)]
+        return [frame] + [[tensors[x][y] for y in range(len(tensors[x]))] for x in range(4)]
 
 
 if __name__ == '__main__':
     filter = LineEndFilter()
 
-    #filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\2019-01-18 21-49-54.mp4")
+    # filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\2019-01-18 21-49-54.mp4")
     filter.run_on_pictures(r"C:\\Users\\joshm\\OneDrive\\Pictures\\robots\\repr\\phone.png", resize=(-1, 480))
-    #filter.run_camera(0, size=(800, 600))
+    # filter.run_camera(0, size=(800, 600))
     # results = filter.run_on_pictures([r'C:\Users\joshm\OneDrive\Pictures\backgrounds'], write_results=True)
