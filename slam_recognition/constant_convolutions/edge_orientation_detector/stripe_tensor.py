@@ -26,8 +26,8 @@ def stripe_tensor(normal_vector,  # type: List[int]
                   attractor_function=__euclid_function_generator,  # type: Callable[[Real], Callable[[Real], Real]]
                   ):
     """Generates a multi-channel stripe tensor. These will isolate the n-1 boundaries, or facets, in n-dimensional
-     space. In 3d, they will find faces; in 2d, lines; and in 1d, points. Unlike edge_orientation_detector tensors, they will only find these
-     features if they have the correct thickness.
+     space. In 3d, they will find faces; in 2d, lines; and in 1d, points. Unlike edge_orientation_detector tensors, they
+      will only find these features if they have the correct thickness.
 
     Note: stripe tensors with 11 or more dimensions may take a while to generate. Make sure you cache those.
 

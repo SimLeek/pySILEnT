@@ -31,9 +31,11 @@ def midget_rgc(n  # type: int
 
     return normalize_tensor_positive_negative(out, 4.0, 2.0)
 
+
 def midget_rgc_full(n  # type: int
-               ):  # type: (...)->np.ndarray
-    """Returns a tensor that performs edge_orientation_detector detection on each color. Expects negative input for surround.
+                    ):  # type: (...)->np.ndarray
+    """Returns a tensor that performs edge_orientation_detector detection on each color.
+    Expects negative input for surround.
 
     Based off of human retinal ganglian cells.
 

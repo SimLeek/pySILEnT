@@ -14,7 +14,7 @@ from slam_recognition.util.normalize import normalize_tensor_positive_negative a
 from slam_recognition.util.orientation import simplex_coordinates as __simplex_coordinates
 
 if False:
-    from typing import List, Callable, Optional, Tuple
+    from typing import List, Callable, Optional
     from numbers import Real
 
 
@@ -25,10 +25,13 @@ def edge_tensor(normal_vector,  # type: List[int]
                 surround_out,  # type: List[int]
                 attractor_function=__euclid_function_generator,  # type: Callable[[...], Callable[[Real], Real]]
                 ):
-    """Generates a multi-channel edge_orientation_detector tensor. These will isolate the n-1 boundaries, or facets, in n-dimensional space.
-     In 3d, they will find faces; in 2d, lines; and in 1d, points.
+    """Generates a multi-channel edge_orientation_detector tensor. These will isolate the n-1 boundaries, or facets,
+    in n-dimensional space.
 
-    Note: edge_orientation_detector tensors with 11 or more dimensions may take a while to generate. Make sure you cache those.
+    In 3d, they will find faces; in 2d, lines; and in 1d, points.
+
+    Note: edge_orientation_detector tensors with 11 or more dimensions may take a while to generate. Make sure you cache
+     those.
 
     :param attractor_function: function that determines the weights of each point in the tensor based on its distance
      from the central facet.
@@ -80,8 +83,9 @@ def simplex_edge_tensors(dimensions,  # type: int
                          # type: Callable[[Real], Callable[[Real], Real]]
                          flip=None  # type: Optional[int]
                          ):
-    """ Generates the minimum number of edge_orientation_detector tensors needed to represent all orientations of boundaries in n-dimensional
-     space, with positive values only. This results in one more tensor than when negative values are allowed.
+    """ Generates the minimum number of edge_orientation_detector tensors needed to represent all orientations of
+    boundaries in n-dimensional space, with positive values only. This results in one more tensor than when negative
+    values are allowed.
 
     :param dimensions: number of dimensions.
     :param centers_in: list of colors added together on points on the edge_orientation_detector.
@@ -109,15 +113,14 @@ def rgb_2d_edge_tensors(in_channel=(1, 1, 1)):
     """
     x = 2
     out1 = [[2 * x, -.5 * x, -.5 * x], [-.5 * x, 2 * x, -.5 * x], [-.5 * x, -.5 * x, 2 * x]]
-    out2 =  [[-2 * x, .5 * x, .5 * x], [.5 * x, -2 * x, .5 * x], [.5 * x, .5 * x, -2 * x]]
-    #out1 = [[2 * x,x,x], [x, 2 * x, x], [x,x, 2 * x]]
-    #out2 = [[-2 * x,0,0], [0, -2 * x, 0], [0,0, -2 * x]]
+    out2 = [[-2 * x, .5 * x, .5 * x], [.5 * x, -2 * x, .5 * x], [.5 * x, .5 * x, -2 * x]]
     return sum(simplex_edge_tensors(2, [in_channel, in_channel, in_channel],
                                     out1,
                                     [in_channel, in_channel, in_channel],
                                     out2))
 
-def rgb_2d_edge_tensors_time_diff(in_channel=(1, 1, 1), surround_in_channel=(-1,-1,-1)):
+
+def rgb_2d_edge_tensors_time_diff(in_channel=(1, 1, 1), surround_in_channel=(-1, -1, -1)):
     """ Finds edges and outputs colors based on orientation. For use on 2D sensor input only. 3D will require 4 colors
      to visualize.
 
@@ -131,6 +134,8 @@ def rgb_2d_edge_tensors_time_diff(in_channel=(1, 1, 1), surround_in_channel=(-1,
                                     [surround_in_channel, surround_in_channel, surround_in_channel],
                                     out2,
                                     ))
+
+
 def rgb_2d_end_tensors(north_input_channel=(1, -.5, -.5),
                        southwest_input_channel=(-.5, 1, -.5),
                        southeast_input_channel=(-.5, -.5, 1)

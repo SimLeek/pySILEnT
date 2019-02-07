@@ -97,5 +97,3 @@ def rgb_2d_end_tensors(north_input_channel=(1, 0, 0),
                                           [[y, -yy, -yy], [-yy, y, -yy], [-yy, -yy, y]]))
 
     return end_tensors
-
-

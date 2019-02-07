@@ -5,7 +5,7 @@ if False:
 
 
 def zoom_tensor_to_image_list(zoom,  # type: np.ndarray
-                              axis = 2):  # type: (...)->List[np.ndarray]
+                              axis=2):  # type: (...)->List[np.ndarray]
     """Converts an image pyramid tensor to a list of images. Can be used by cvpubsub library to display.
 
     :param zoom: any one or three channel tensor

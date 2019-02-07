@@ -1,7 +1,7 @@
-from slam_recognition.pyramid_filter import PyramidFilter
+from slam_recognition.pyramid_displayer import PyramidDisplayer
 import tensorflow as tf
 from slam_recognition.constant_convolutions.oriented_end_detector import rgb_2d_end_tensors
-from slam_recognition.util.energy.exhaustion import initialize_exhaustion, get_exhaustion
+from slam_recognition.util.energy.boosting import initialize_boosting, get_boosting
 
 from slam_recognition.util.selection.top_value_points import max_value_indices_region
 from slam_recognition.util.color.get_value import get_value_from_color
@@ -11,18 +11,19 @@ from slam_recognition.util import get_centroids
 from slam_recognition.filters import orientation_filter
 from slam_recognition.filters import rgby_filter, rgc_filter
 import math as m
+import numpy as np
+from slam_recognition.util import zoom
 
 debug = True
 
 
-class LineEndFilter(PyramidFilter):
-    callback_depth = 2
+class LineEndDisplayer(PyramidDisplayer):
 
     def __init__(self, n_dimensions=2, **argv):
         """Mimics the blob cells in the lowest layer of the V1 in the neocortex, activating pixels that have high
         color difference."""
 
-        super(LineEndFilter, self).__init__(**argv)
+        super(LineEndDisplayer, self).__init__(**argv)
         self.tensor_return_type.append(tf.Tensor)
 
         self.simplex_end_stop = rgb_2d_end_tensors()
@@ -52,7 +53,7 @@ class LineEndFilter(PyramidFilter):
 
         centroids, centroid_importances = get_centroids(gray_line_end_tensor / 255.0, self.centroid_region_shape,
                                                         debug=True)
-        self.energy_values = initialize_exhaustion(centroid_importances * 255)
+        self.energy_values = initialize_boosting(centroid_importances * 255)
 
         self.precompile_list = [self.energy_values]
 
@@ -60,7 +61,7 @@ class LineEndFilter(PyramidFilter):
 
         self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=(pyramid_tensor.shape))
 
-        with tf.name_scope('LineEndFilter Compile') and tf.device('/device:GPU:0'):
+        with tf.name_scope('LineEndDisplayer Compile') and tf.device('/device:GPU:0'):
 
             if isinstance(self.region_shape, list):
                 self.region_shape = tf.TensorShape(self.region_shape)
@@ -82,8 +83,8 @@ class LineEndFilter(PyramidFilter):
             im2 = tf.image.resize_nearest_neighbor(gray_line_end_tensor, tf.cast(half_shape, tf.int32))
             centroids2, centroid_importances2 = get_centroids(im2 / 255.0, self.centroid_region_shape, debug=True)
 
-            fired_importants, update_importances = get_exhaustion(centroid_importances, self.energy_values,
-                                                                  for_visualizing=True)
+            fired_importants, update_importances = get_boosting(centroid_importances, self.energy_values,
+                                                                for_visualizing=True)
             # fired_importants2, update_importances2 = get_exhaustion(centroid_importances2, self.energy_values, for_visualizing=True)
 
             top_percent_points = max_value_indices_region(padded_line_end_tensor,
@@ -91,7 +92,7 @@ class LineEndFilter(PyramidFilter):
 
             # top_idxs = tf.cast(top_percent_points, tf.int32)
 
-        # with tf.name_scope('LineEndFilter Compile pt2') and tf.device('/device:CPU:0'):
+        # with tf.name_scope('LineEndDisplayer Compile pt2') and tf.device('/device:CPU:0'):
         #    relativity_tensor = get_relative_to_indices_regions(has_fired2,self.region_shape, top_percent_points)
 
         self.compiled_list.extend(
@@ -137,15 +138,16 @@ class LineEndFilter(PyramidFilter):
                  cam_id=None,
                  depth=2
                  ):
-        z_tensor = super(LineEndFilter, self).callback(frame, cam_id)
+        z_tensor = np.asarray(frame, dtype=np.float32)
+        z_tensor = zoom.from_image(z_tensor, self.output_colors, self.output_size, self.zoom_ratio)
         tensors = self.run(z_tensor)
         return [frame] + [[tensors[x][y] for y in range(len(tensors[x]))] for x in range(6)]
 
 
 if __name__ == '__main__':
-    filter = LineEndFilter()
+    filter = LineEndDisplayer()
 
     # filter.run_camera(cam=r"C:\\Users\\joshm\\Videos\\2019-01-18 21-49-54.mp4")
-    filter.run_on_pictures(r"C:\\Users\\joshm\\OneDrive\\Pictures\\robots\\repr\\phone.png", resize=(-1, 480))
+    filter.run_pictures(r"C:\\Users\\joshm\\OneDrive\\Pictures\\robots\\repr\\phone.png", resize=(-1, 480))
     # filter.run_camera(0, size=(800, 600))
     # results = filter.run_on_pictures([r'C:\Users\joshm\OneDrive\Pictures\backgrounds'], write_results=True)

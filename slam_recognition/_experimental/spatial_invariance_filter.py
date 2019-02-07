@@ -1,4 +1,4 @@
-from slam_recognition.line_end_filter import LineEndFilter
+from slam_recognition.recognition_testing import LineEndDisplayer
 import tensorflow as tf
 import numpy as np
 import cv2
@@ -73,7 +73,7 @@ class WhileSparse(object):
             return index + 1, sparse_tensor
         return transform
 
-class SpatialInvarianceFilter(LineEndFilter):
+class SpatialInvarianceFilter(LineEndDisplayer):
     callback_depth = 6
 
     def __init__(self, n_dimensions=2, **argv):

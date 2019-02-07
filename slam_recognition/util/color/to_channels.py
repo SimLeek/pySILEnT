@@ -1,7 +1,7 @@
 from tensorflow.python.ops import array_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import dtypes
-import tensorflow as tf
+
 
 def to_channels(images, num_channels=3, name=None):
     # remade from tensorflow core

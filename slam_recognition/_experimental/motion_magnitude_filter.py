@@ -1,4 +1,4 @@
-from slam_recognition.line_end_filter import LineEndFilter
+from slam_recognition.recognition_testing import LineEndDisplayer
 import tensorflow as tf
 from slam_recognition.constant_convolutions.oriented_end_detector import rgb_2d_end_tensors_time
 
@@ -7,7 +7,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 
 
-class MotionFilter1(LineEndFilter):
+class MotionFilter1(LineEndDisplayer):
     callback_depth = 6
 
     def __init__(self, n_dimensions=2, **argv):

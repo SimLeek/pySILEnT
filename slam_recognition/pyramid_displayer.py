@@ -5,18 +5,21 @@ from cvpubsubs import window_sub as ws
 import tensorflow as tf
 import cv2
 import os
-from slam_recognition.util import zoom
+from abc import abstractmethod, ABCMeta
+
+if False:
+    from typing import Union
 
 try:
     from PIL import Image as pilImage
 except ImportError:
-    pass
+    pilImage = None
 
 
-class PyramidFilter(object):
-    callback_depth = 1
+class PyramidDisplayer(object):
+    __metaclass__ = ABCMeta
 
-    def __init__(self, output_size=(int(36*8), int(24*8)), output_colors=3, zoom_ratio=m.e ** .5):
+    def __init__(self, output_size=(int(36 * 8), int(24 * 8)), output_colors=3, zoom_ratio=m.e ** .5):
         """Generates several smaller images at different zoom levels from one input image."""
         self.output_size = output_size
         self.output_colors = output_colors
@@ -25,30 +28,21 @@ class PyramidFilter(object):
         self.tensor_return_type = []
         self.tensor_return_type.append(tf.Tensor)
 
-    def callback(self,
-                 frame,
-                 cam_id,
-                 depth=callback_depth
-                 ):
-        """Transforms the input frame into an image pyramid.
-
-        :param frame: Input frame.
-        :param cam_id: Unused.
-        :return: Zoom tensor to use.
-        """
-        z_tensor = np.asarray(frame, dtype=np.float32)
-        z_tensor = zoom.from_image(z_tensor, self.output_colors, self.output_size, self.zoom_ratio)
-        return z_tensor
+    @abstractmethod
+    def callback(self, frame, cam_id):  # NOSONAR
+        return [frame]
 
     def display(self,
                 frame,
                 cam_id,
                 ):
         frame_from_callback = self.callback(frame, cam_id)
-        return [np.array(frame_from_callback[x])/255.0 for x in range(len(frame_from_callback))]
+        return [np.array(frame_from_callback[x]) / 255.0 for x in range(len(frame_from_callback))]
 
-    def run_camera(self, cam=0, fps_limit=60, size=(-1,-1), mjpeg_compression=True):
-        t = wp.VideoHandlerThread(video_source=cam, callbacks=[self.display]+wp.display_callbacks,
+    def run_camera(self,
+                   cam=0,  # type: Union[int, np.ndarray, pilImage.Image]
+                   fps_limit=60, size=(-1, -1), mjpeg_compression=True):
+        t = wp.VideoHandlerThread(video_source=cam, callbacks=[self.display] + wp.display_callbacks,
                                   request_size=size,
                                   high_speed=mjpeg_compression,
                                   fps_limit=fps_limit)
@@ -65,18 +59,23 @@ class PyramidFilter(object):
         t.join()
 
     @staticmethod
+    def __get_all_picture_files(directory_or_filename):
+        try:
+            if os.path.isfile(directory_or_filename):
+                cv_result = cv2.imread(directory_or_filename)
+            elif os.path.isdir(directory_or_filename):
+                cv_result = []
+                for root, subdirs, files in os.walk(directory_or_filename):
+                    for file in files:
+                        cv_result.append(cv2.imread(os.path.join(root, file)))
+        except:
+            cv_result = None
+        return cv_result
+
+    @staticmethod
     def __convert_pic_to_np(picture):
         if isinstance(picture, str):
-            try:
-                if os.path.isfile(picture):
-                    cv_result = cv2.imread(picture)
-                elif os.path.isdir(picture):
-                    cv_result = []
-                    for root, subdirs, files in os.walk(picture):
-                        for file in files:
-                            cv_result.append(cv2.imread(os.path.join(root, file)))
-            except:
-                pass
+            cv_result = PyramidDisplayer.__get_all_picture_files(picture)
             if cv_result is None:
                 picture = pilImage.open(picture)
             else:
@@ -99,7 +98,7 @@ class PyramidFilter(object):
             return results
         return self.run_camera(picture, size=resize)
 
-    def run_on_pictures(self, pictures, resize=(-1,-1)):
+    def run_pictures(self, pictures, resize=(-1, -1)):
         if not isinstance(pictures, (list, tuple)):
             return self.__run_on_picture(pictures, resize)
         else:
@@ -110,7 +109,6 @@ class PyramidFilter(object):
 
 
 if __name__ == '__main__':
-    filter = PyramidFilter()
+    filter = PyramidDisplayer()
 
     filter.run_camera()
-

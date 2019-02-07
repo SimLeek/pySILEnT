@@ -7,7 +7,6 @@ This code generates tensors for keeping the total brightness constant in an area
 import tensorflow as tf
 
 
-
 def regulate_tensor(input_tensor,
                     blur_tensor,
                     regulation_value,
@@ -18,8 +17,9 @@ def regulate_tensor(input_tensor,
     """ Uses a blurred version of the input tensor to perform "adaptive thresholding", except it boosts or inhibits
     instead, since there's no threshold.
 
-    When used on an edge_orientation_detector or stripe detector, this can brighten edges that are faint, but in dark or blurry parts of the
-    image. It will also dim edges that are bright, but near bright or high contrast parts of an imaage.
+    When used on an edge_orientation_detector or stripe detector, this can brighten edges that are faint, but in dark or
+     blurry parts of the mage. It will also dim edges that are bright, but near bright or high contrast parts of an
+     imaage.
 
     :param input_tensor: the tensor or image to regulate
     :param blur_tensor: the blurred version of the tensor or image

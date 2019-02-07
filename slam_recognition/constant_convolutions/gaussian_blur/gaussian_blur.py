@@ -5,6 +5,10 @@ import numpy as np
 
 from slam_recognition.util.attractor import euclidian_attractor_function_generator as __euclid_function_generator
 
+if False:
+    from typing import Union, List, Callable
+    from numbers import Real
+
 
 def blur_tensor(n,  # type: int
                 lengths=3,  # type: Union[List[int],int]
@@ -23,9 +27,7 @@ def blur_tensor(n,  # type: int
     Fun note: I made this by accident.
 
      :param n: number of dimensions
-     :param regulation_value: value that all values in our area will add up to
-     :param width: width of our oval area
-     :param height: height of our oval area
+     :param lengths: width, height, depth, etc. of our oval area
      :param channels_in: number of color channels to take in.
      :param channels_out: number of color channels to output to.
      :param attractor_function:
