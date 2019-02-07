@@ -1,4 +1,4 @@
-from slam_recognition.rgc_filter import RGCFilter
+from slam_recognition.pyramid_filter import PyramidFilter
 import tensorflow as tf
 from slam_recognition.constant_convolutions.oriented_end_detector import rgb_2d_end_tensors
 from slam_recognition.util.energy.exhaustion import initialize_exhaustion, get_exhaustion
@@ -9,13 +9,13 @@ from slam_recognition.util.selection.isolate_rectangle import pad_inwards
 from slam_recognition.util.apply_filter import apply_filter
 from slam_recognition.util import get_centroids
 from slam_recognition.filters import orientation_filter
-from slam_recognition.filters import rgby_filter
+from slam_recognition.filters import rgby_filter, rgc_filter
 import math as m
 
 debug = True
 
 
-class LineEndFilter(RGCFilter):
+class LineEndFilter(PyramidFilter):
     callback_depth = 2
 
     def __init__(self, n_dimensions=2, **argv):
@@ -38,6 +38,9 @@ class LineEndFilter(RGCFilter):
         self.centroid_region_shape = [1, 3, 3]  # 2 or 3 are good values for this
         self.region_shape = [1, self.output_size[1] / 2.0, self.output_size[0] / 2.0, self.output_colors]
 
+        self.pyramid_tensor_shape = None
+        self.compiled_list = []
+
     def pre_compile(self, pyramid_tensor):
         self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=(pyramid_tensor.shape))
 
@@ -54,13 +57,16 @@ class LineEndFilter(RGCFilter):
         self.precompile_list = [self.energy_values]
 
     def compile(self, pyramid_tensor):
+
+        self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=(pyramid_tensor.shape))
+
         with tf.name_scope('LineEndFilter Compile') and tf.device('/device:GPU:0'):
-            super(LineEndFilter, self).compile(pyramid_tensor)
 
             if isinstance(self.region_shape, list):
                 self.region_shape = tf.TensorShape(self.region_shape)
 
-            rgby_tensor = rgby_filter(self.compiled_list[-1])
+            rgc_tensor = rgc_filter(self.input_placeholder)
+            rgby_tensor = rgby_filter(rgc_tensor)
             orient_tensor = orientation_filter(rgby_tensor)
 
             line_end_tensor = tf.maximum(apply_filter(orient_tensor, self.simplex_end_stop), [0])
@@ -122,7 +128,7 @@ class LineEndFilter(RGCFilter):
                 # self.session.run(self.precompile_list, feed_dict=feed_dict)
         feed_dict = dict({self.input_placeholder: pyramid_tensor[:, :, :, :]})
 
-        result = self.session.run(self.compiled_list[1:7], feed_dict=feed_dict)
+        result = self.session.run(self.compiled_list[0:6], feed_dict=feed_dict)
 
         return result
 
