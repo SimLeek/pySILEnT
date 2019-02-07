@@ -1,4 +1,4 @@
-from slam_recognition.center_surround_tensor import midget_rgc
+from slam_recognition.constant_convolutions.center_surround import midget_rgc
 from slam_recognition.pyramid_filter import PyramidFilter
 import tensorflow as tf
 

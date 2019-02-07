@@ -13,7 +13,7 @@ if False:
 
 def rgby(n  # type: int
          ):  # type: (...)->np.ndarray
-    """Returns a tensor that can convolve a color image for better edge detection. Based off visual cortex V1.
+    """Returns a tensor that can convolve a color image for better edge_orientation_detector detection. Based off visual cortex V1.
 
     :param n: number of dimensions
     :return: tensor used for convolution
@@ -33,7 +33,7 @@ def rgby(n  # type: int
 
 
 def rgby_3(n):
-    """Returns a tensor that can convolve a color image for better edge detection. Based off visual cortex V1.
+    """Returns a tensor that can convolve a color image for better edge_orientation_detector detection. Based off visual cortex V1.
 
     This version results in a three color image, so humans can see and debug the output.
 

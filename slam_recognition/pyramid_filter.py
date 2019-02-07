@@ -1,11 +1,11 @@
 import numpy as np
-import slam_recognition.zoom_tensor as zoom_tensor
 import math as m
 from cvpubsubs import webcam_pub as wp
 from cvpubsubs import window_sub as ws
 import tensorflow as tf
 import cv2
 import os
+from slam_recognition.util import zoom
 
 try:
     from PIL import Image as pilImage
@@ -37,7 +37,7 @@ class PyramidFilter(object):
         :return: Zoom tensor to use.
         """
         z_tensor = np.asarray(frame, dtype=np.float32)
-        z_tensor = zoom_tensor.from_image(z_tensor, self.output_colors, self.output_size, self.zoom_ratio)
+        z_tensor = zoom.from_image(z_tensor, self.output_colors, self.output_size, self.zoom_ratio)
         return z_tensor
 
     def display(self,

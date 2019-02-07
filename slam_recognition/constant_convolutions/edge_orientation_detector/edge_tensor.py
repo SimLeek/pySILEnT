@@ -25,18 +25,18 @@ def edge_tensor(normal_vector,  # type: List[int]
                 surround_out,  # type: List[int]
                 attractor_function=__euclid_function_generator,  # type: Callable[[...], Callable[[Real], Real]]
                 ):
-    """Generates a multi-channel edge tensor. These will isolate the n-1 boundaries, or facets, in n-dimensional space.
+    """Generates a multi-channel edge_orientation_detector tensor. These will isolate the n-1 boundaries, or facets, in n-dimensional space.
      In 3d, they will find faces; in 2d, lines; and in 1d, points.
 
-    Note: edge tensors with 11 or more dimensions may take a while to generate. Make sure you cache those.
+    Note: edge_orientation_detector tensors with 11 or more dimensions may take a while to generate. Make sure you cache those.
 
     :param attractor_function: function that determines the weights of each point in the tensor based on its distance
      from the central facet.
-    :param normal_vector: unit vector pointing outwards from the facet/face/edge.
-    :param center_in: colors added together on points on the edge.
-    :param center_out: colors outputted on points on the edge.
-    :param surround_in: colors subtracted together on points off the edge
-    :param surround_out: colors outputted on points off the edge.
+    :param normal_vector: unit vector pointing outwards from the facet/face/edge_orientation_detector.
+    :param center_in: colors added together on points on the edge_orientation_detector.
+    :param center_out: colors outputted on points on the edge_orientation_detector.
+    :param surround_in: colors subtracted together on points off the edge_orientation_detector
+    :param surround_out: colors outputted on points off the edge_orientation_detector.
 
     """
     assert len(normal_vector) >= 1
@@ -80,14 +80,14 @@ def simplex_edge_tensors(dimensions,  # type: int
                          # type: Callable[[Real], Callable[[Real], Real]]
                          flip=None  # type: Optional[int]
                          ):
-    """ Generates the minimum number of edge tensors needed to represent all orientations of boundaries in n-dimensional
+    """ Generates the minimum number of edge_orientation_detector tensors needed to represent all orientations of boundaries in n-dimensional
      space, with positive values only. This results in one more tensor than when negative values are allowed.
 
     :param dimensions: number of dimensions.
-    :param centers_in: list of colors added together on points on the edge.
-    :param centers_out: list of colors outputted on points on the edge.
-    :param surrounds_in: list of colors subtracted together on points off the edge
-    :param surrounds_out: list of colors outputted on points off the edge.
+    :param centers_in: list of colors added together on points on the edge_orientation_detector.
+    :param centers_out: list of colors outputted on points on the edge_orientation_detector.
+    :param surrounds_in: list of colors subtracted together on points off the edge_orientation_detector
+    :param surrounds_out: list of colors outputted on points off the edge_orientation_detector.
     :param attractor_function: function that takes in the number of dimensions and outputs a function that takes in
             distances and returns positive values for small distances and negative values for large distances.
     :return: a list of tensors for finding all orientations of boundaries.

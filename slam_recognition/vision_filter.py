@@ -3,14 +3,14 @@ from cvpubsubs import webcam_pub as w
 from cvpubsubs.window_sub import SubscriberWindows
 import math as m
 
-from slam_recognition import zoom_tensor
-from slam_recognition.center_surround_tensor import rgby_3, midget_rgc
-from slam_recognition.zoom_tensor.to_image_list import zoom_tensor_to_image_list
-from slam_recognition.edge_tensor import rgb_2d_stripe_tensors, rgb_2d_edge_tensors
-from slam_recognition.end_tensor import rgb_2d_end_tensors
+from slam_recognition.util import zoom
+from slam_recognition.constant_convolutions.center_surround import rgby_3, midget_rgc
+from slam_recognition.util.zoom.to_image_list import zoom_tensor_to_image_list
+from slam_recognition.constant_convolutions.edge_orientation_detector import rgb_2d_stripe_tensors
+from slam_recognition.constant_convolutions.oriented_end_detector import rgb_2d_end_tensors
 import numpy as np
-from slam_recognition.regulator_tensor.gaussian_regulator_tensor import regulate_tensor, blur_tensor
-from slam_recognition.end_tensor import end_tensor
+from slam_recognition.util.regulator import regulate_tensor
+from slam_recognition.constant_convolutions.gaussian_blur.gaussian_blur import blur_tensor
 
 
 class VisionFilter(object):
@@ -137,7 +137,7 @@ class VisionFilter(object):
         """
         npFrame = np.asarray(frame, dtype=np.float32)
         frames = zoom_tensor_to_image_list(
-            self.spatial_color_2d(zoom_tensor.from_image(npFrame, 3, [257, 144], m.e ** .5)))
+            self.spatial_color_2d(zoom.from_image(npFrame, 3, [257, 144], m.e ** .5)))
         frame = frames[0]
         for f in range(1, len(frames)):
             frame = np.concatenate((frame, frames[f]), axis=1)

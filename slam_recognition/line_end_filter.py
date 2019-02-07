@@ -1,6 +1,6 @@
-from slam_recognition.rgby_filter import RGBYFilter
+from slam_recognition.rgc_filter import RGCFilter
 import tensorflow as tf
-from slam_recognition.end_tensor import rgb_2d_end_tensors
+from slam_recognition.constant_convolutions.oriented_end_detector import rgb_2d_end_tensors
 from slam_recognition.util.energy.exhaustion import initialize_exhaustion, get_exhaustion
 
 from slam_recognition.util.selection.top_value_points import max_value_indices_region
@@ -9,12 +9,13 @@ from slam_recognition.util.selection.isolate_rectangle import pad_inwards
 from slam_recognition.util.apply_filter import apply_filter
 from slam_recognition.util import get_centroids
 from slam_recognition.filters import orientation_filter
+from slam_recognition.filters import rgby_filter
 import math as m
 
 debug = True
 
 
-class LineEndFilter(RGBYFilter):
+class LineEndFilter(RGCFilter):
     callback_depth = 2
 
     def __init__(self, n_dimensions=2, **argv):
@@ -59,7 +60,8 @@ class LineEndFilter(RGBYFilter):
             if isinstance(self.region_shape, list):
                 self.region_shape = tf.TensorShape(self.region_shape)
 
-            orient_tensor = orientation_filter(self.compiled_list[-1])
+            rgby_tensor = rgby_filter(self.compiled_list[-1])
+            orient_tensor = orientation_filter(rgby_tensor)
 
             line_end_tensor = tf.maximum(apply_filter(orient_tensor, self.simplex_end_stop), [0])
             line_end_tensor = tf.clip_by_value(line_end_tensor, 0, 255)
@@ -87,7 +89,7 @@ class LineEndFilter(RGBYFilter):
         #    relativity_tensor = get_relative_to_indices_regions(has_fired2,self.region_shape, top_percent_points)
 
         self.compiled_list.extend(
-            [255 - centroids * 255, 255 - centroids2 * 255, fired_importants * 255, update_importances,
+            [orient_tensor, 255 - centroids * 255, 255 - centroids2 * 255, fired_importants * 255, update_importances,
              padded_line_end_tensor])
         # self.compiled_list.extend(
         #    [tf.image.grayscale_to_rgb(update_energy * (255.0 / 16) + 127.5), centroids,
@@ -120,7 +122,7 @@ class LineEndFilter(RGBYFilter):
                 # self.session.run(self.precompile_list, feed_dict=feed_dict)
         feed_dict = dict({self.input_placeholder: pyramid_tensor[:, :, :, :]})
 
-        result = self.session.run(self.compiled_list[3:8], feed_dict=feed_dict)
+        result = self.session.run(self.compiled_list[1:7], feed_dict=feed_dict)
 
         return result
 
@@ -131,7 +133,7 @@ class LineEndFilter(RGBYFilter):
                  ):
         z_tensor = super(LineEndFilter, self).callback(frame, cam_id)
         tensors = self.run(z_tensor)
-        return [frame] + [[tensors[x][y] for y in range(len(tensors[x]))] for x in range(4)]
+        return [frame] + [[tensors[x][y] for y in range(len(tensors[x]))] for x in range(6)]
 
 
 if __name__ == '__main__':

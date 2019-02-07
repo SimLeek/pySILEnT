@@ -13,7 +13,7 @@ if False:
 
 def midget_rgc(n  # type: int
                ):  # type: (...)->np.ndarray
-    """Returns a tensor that can convolve a color image for better edge detection.
+    """Returns a tensor that can convolve a color image for better edge_orientation_detector detection.
 
     Based off of human retinal ganglian cells.
 
@@ -33,7 +33,7 @@ def midget_rgc(n  # type: int
 
 def midget_rgc_full(n  # type: int
                ):  # type: (...)->np.ndarray
-    """Returns a tensor that performs edge detection on each color. Expects negative input for surround.
+    """Returns a tensor that performs edge_orientation_detector detection on each color. Expects negative input for surround.
 
     Based off of human retinal ganglian cells.
 

@@ -2,7 +2,7 @@
 
 """
 This code generates tensors that detect points more than any other feature. They also detects edges. Equivalent to
-top-hat edge detectors.
+top-hat edge_orientation_detector detectors.
 """
 
 import itertools

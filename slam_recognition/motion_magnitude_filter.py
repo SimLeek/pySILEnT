@@ -1,10 +1,8 @@
 from slam_recognition.line_end_filter import LineEndFilter
 import tensorflow as tf
-from slam_recognition.center_surround_tensor.rgc import midget_rgc_full
-from slam_recognition.edge_tensor.edge_tensor import rgb_2d_edge_tensors_time_diff
-from slam_recognition.end_tensor import rgb_2d_end_tensors_time
+from slam_recognition.constant_convolutions.oriented_end_detector import rgb_2d_end_tensors_time
 
-from slam_recognition.regulator_tensor.gaussian_regulator_tensor import blur_tensor
+from slam_recognition.constant_convolutions.gaussian_blur.gaussian_blur import blur_tensor
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 
