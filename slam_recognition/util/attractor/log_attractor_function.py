@@ -5,8 +5,9 @@ def log_attractor_function(x,
                            max_positive=1.0,
                            max_negative=0.5
                            ):
-    """Uses logarithms to define how distance from the central edge effects the weights attached to each location in the
-        tensor. The equation is: -log_2(x^2+((x-1)^2)/(2^p))+log_2((x-1)^2+(x^2)/(2^n), which creates this curve:
+    """Uses logarithms to define how distance from the central edge_orientation_detector effects the weights attached
+    to each location in the tensor. The equation is: -log_2(x^2+((x-1)^2)/(2^p))+log_2((x-1)^2+(x^2)/(2^n), which
+    creates this curve:
                _|
         ,,,---/ |.
         ----------\---------
